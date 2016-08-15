@@ -1,0 +1,26 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2015
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pop2APITest.CSharp", "Pop2APITest.CSharp.csproj", "{C3CCD506-C207-45A2-E8FC-ED83828DA0EA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pop2APITest.CSharp.Editor", "Pop2APITest.CSharp.Editor.csproj", "{330D837C-E141-BE9E-9097-5E8DBC8A8FDC}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C3CCD506-C207-45A2-E8FC-ED83828DA0EA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C3CCD506-C207-45A2-E8FC-ED83828DA0EA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C3CCD506-C207-45A2-E8FC-ED83828DA0EA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C3CCD506-C207-45A2-E8FC-ED83828DA0EA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{330D837C-E141-BE9E-9097-5E8DBC8A8FDC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{330D837C-E141-BE9E-9097-5E8DBC8A8FDC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{330D837C-E141-BE9E-9097-5E8DBC8A8FDC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{330D837C-E141-BE9E-9097-5E8DBC8A8FDC}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
