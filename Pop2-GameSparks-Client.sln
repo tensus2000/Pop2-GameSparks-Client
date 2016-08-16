@@ -1,0 +1,29 @@
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2008
+
+Project("{95DF9858-E9E6-CC9B-D70D-40EED0B2F1E2}") = "Pop2-GameSparks-Client", "Assembly-CSharp.csproj", "{EA75B08E-E83D-C54F-7D25-48E3B3244065}"
+EndProject
+Project("{95DF9858-E9E6-CC9B-D70D-40EED0B2F1E2}") = "Pop2-GameSparks-Client", "Assembly-CSharp-Editor.csproj", "{5C49BD2B-2511-11DA-EAF2-5CDB8B94818D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{EA75B08E-E83D-C54F-7D25-48E3B3244065}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EA75B08E-E83D-C54F-7D25-48E3B3244065}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EA75B08E-E83D-C54F-7D25-48E3B3244065}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EA75B08E-E83D-C54F-7D25-48E3B3244065}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5C49BD2B-2511-11DA-EAF2-5CDB8B94818D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5C49BD2B-2511-11DA-EAF2-5CDB8B94818D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5C49BD2B-2511-11DA-EAF2-5CDB8B94818D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5C49BD2B-2511-11DA-EAF2-5CDB8B94818D}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(MonoDevelopProperties) = preSolution
+		StartupItem = Assembly-CSharp.csproj
+	EndGlobalSection
+EndGlobal

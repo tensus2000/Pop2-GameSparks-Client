@@ -6,7 +6,7 @@
     <ProductVersion>10.0.20506</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
     <RootNamespace></RootNamespace>
-    <ProjectGuid>{8BA86D75-0CEC-467D-6D84-E1FC814259BC}</ProjectGuid>
+    <ProjectGuid>{5C49BD2B-2511-11DA-EAF2-5CDB8B94818D}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <AssemblyName>Assembly-CSharp-Editor</AssemblyName>
@@ -79,13 +79,13 @@
  <HintPath>/Applications/Unity/Unity.app/Contents/UnityExtensions/Unity/TreeEditor/Editor/UnityEditor.TreeEditor.dll</HintPath>
  </Reference>
  <Reference Include="GameSparks.Api">
- <HintPath>/Users/seandurkan/Desktop/GameSparks/Studios/FEN/Pop2_SampleClient/Assets/Plugins/GameSparks.Api.dll</HintPath>
+ <HintPath>/Users/seandurkan/Desktop/GameSparks/Studios/FEN/Pop2_SampleClient/Pop2-GameSparks-Client/Assets/Plugins/GameSparks.Api.dll</HintPath>
  </Reference>
  <Reference Include="GameSparks">
- <HintPath>/Users/seandurkan/Desktop/GameSparks/Studios/FEN/Pop2_SampleClient/Assets/Plugins/GameSparks.dll</HintPath>
+ <HintPath>/Users/seandurkan/Desktop/GameSparks/Studios/FEN/Pop2_SampleClient/Pop2-GameSparks-Client/Assets/Plugins/GameSparks.dll</HintPath>
  </Reference>
  <Reference Include="GameSparksRT">
- <HintPath>/Users/seandurkan/Desktop/GameSparks/Studios/FEN/Pop2_SampleClient/Assets/Plugins/GameSparksRT.dll</HintPath>
+ <HintPath>/Users/seandurkan/Desktop/GameSparks/Studios/FEN/Pop2_SampleClient/Pop2-GameSparks-Client/Assets/Plugins/GameSparksRT.dll</HintPath>
  </Reference>
  <Reference Include="UnityEditor.Graphs">
  <HintPath>/Applications/Unity/Unity.app/Contents/Frameworks/Managed/UnityEditor.Graphs.dll</HintPath>
@@ -111,7 +111,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="Assembly-CSharp.csproj">
-      <Project>{C3F87B58-B2B6-1B60-2211-DE2FC9696FCC}</Project>      <Name>Assembly-CSharp</Name>    </ProjectReference>
+      <Project>{EA75B08E-E83D-C54F-7D25-48E3B3244065}</Project>      <Name>Assembly-CSharp</Name>    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

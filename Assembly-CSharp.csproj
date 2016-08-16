@@ -6,7 +6,7 @@
     <ProductVersion>10.0.20506</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
     <RootNamespace></RootNamespace>
-    <ProjectGuid>{C3F87B58-B2B6-1B60-2211-DE2FC9696FCC}</ProjectGuid>
+    <ProjectGuid>{EA75B08E-E83D-C54F-7D25-48E3B3244065}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <AssemblyName>Assembly-CSharp</AssemblyName>
@@ -78,13 +78,13 @@
  <HintPath>/Applications/Unity/Unity.app/Contents/UnityExtensions/Unity/GUISystem/UnityEngine.UI.dll</HintPath>
  </Reference>
  <Reference Include="GameSparks.Api">
- <HintPath>/Users/seandurkan/Desktop/GameSparks/Studios/FEN/Pop2_SampleClient/Assets/Plugins/GameSparks.Api.dll</HintPath>
+ <HintPath>/Users/seandurkan/Desktop/GameSparks/Studios/FEN/Pop2_SampleClient/Pop2-GameSparks-Client/Assets/Plugins/GameSparks.Api.dll</HintPath>
  </Reference>
  <Reference Include="GameSparks">
- <HintPath>/Users/seandurkan/Desktop/GameSparks/Studios/FEN/Pop2_SampleClient/Assets/Plugins/GameSparks.dll</HintPath>
+ <HintPath>/Users/seandurkan/Desktop/GameSparks/Studios/FEN/Pop2_SampleClient/Pop2-GameSparks-Client/Assets/Plugins/GameSparks.dll</HintPath>
  </Reference>
  <Reference Include="GameSparksRT">
- <HintPath>/Users/seandurkan/Desktop/GameSparks/Studios/FEN/Pop2_SampleClient/Assets/Plugins/GameSparksRT.dll</HintPath>
+ <HintPath>/Users/seandurkan/Desktop/GameSparks/Studios/FEN/Pop2_SampleClient/Pop2-GameSparks-Client/Assets/Plugins/GameSparksRT.dll</HintPath>
  </Reference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

@@ -28,7 +28,7 @@ public class UIManager : MonoBehaviour {
 	public Text auth_username_txt;
 	public InputField auth_password_input;
 	public Button auth_bttn;
-	public Text reg_username_txt, reg_password, reg_displayname;
+	public Text reg_username_txt, reg_password, reg_displayname, server_version_txt;
 	public Button reg_bttn;
 
 	public Button getInv_bttn, useItem_bttn, equipItem_bttn, moveItem_bttn, pickupItem_bttn, dropItem_bttn;
@@ -61,13 +61,7 @@ public class UIManager : MonoBehaviour {
 	// Use this for initialization
 	void Start () {
 
-		GS.GameSparksAvailable += ((bool _isAvail) => {
-			if (_isAvail) {
-				Debug.LogWarning ("GameSparks Connected...");
-			}else{
-				Debug.LogWarning ("GameSparks Disconnected...");
-			}
-		});
+
 		blockout_panel.SetActive (true);
 		BringPanelForward (menu);
 
@@ -108,7 +102,11 @@ public class UIManager : MonoBehaviour {
 			GameSparksManager.Instance().Authenticate(auth_username_txt.text, auth_password_input.text, (_resp) => {
 				// here is an example of how we can use the event callbacks. //
 				// in this case, i will remove the menu-option blocker if the player has authenticated sucessfully //
-				blockout_panel.SetActive(false);
+				server_version_txt.text = "Server Version: Requesting....";
+				GameSparksManager.Instance().GetServerVersion((_version) => {
+					server_version_txt.text = "Server Version: "+_version;
+					blockout_panel.SetActive(false);
+				});
 			}, null);
 		});
 
@@ -117,7 +115,11 @@ public class UIManager : MonoBehaviour {
 			GameSparksManager.Instance().Register(reg_username_txt.text, reg_displayname.text, reg_password.text, (_resp) => {
 				// here is an example of how we can use the event callbacks. //
 				// in this case, i will remove the menu-option blocker if the player has authenticated sucessfully //
-				blockout_panel.SetActive(false);
+				server_version_txt.text = "Server Version: Requesting....";
+				GameSparksManager.Instance().GetServerVersion((_version) => {
+					server_version_txt.text = "Server Version: "+_version;
+					blockout_panel.SetActive(false);
+				});
 			}, null);
 		});
 
@@ -136,14 +138,12 @@ public class UIManager : MonoBehaviour {
 				foreach (GSData name in list)
 				{
 					Debug.Log(i + ": " + name.GetString(i.ToString()));
-					//string playerName = level.GetString("playerName");
 					if (i == 0)
 						opts.Add("(0) Equipped: " + name.GetString(i.ToString()));
 					else
 						opts.Add(i + ": " + name.GetString(i.ToString()));
 					i += 1;
 				}
-				//clone.transform.position = new Vector3(-371, -15, 0);
 				clone.AddOptions(opts);
 				clone.Show();
 			});
@@ -191,12 +191,12 @@ public class UIManager : MonoBehaviour {
 
 		grantXp_bttn.onClick.AddListener (() => {
 			Debug.Log("UIM| Clicked Grant XP Buttn...");
-			GameSparksManager.Instance().GiveXp(int.Parse(grantXp_field.text), (resp)=>{
-				// in this case we want to re-request the player's XP and level, so we are in sync with the  server //
-				GameSparksManager.Instance ().GetLevelAndExperiance ((_level, _xp) => {
-					xpText.text = _xp.ToString();
+			GameSparksManager.Instance().GiveXp(int.Parse(grantXp_field.text), (_level, _xp) =>{
+				
+				xpText.text = _xp.ToString();
+				if(levelText != null){
 					levelText.text = _level.ToString();
-				});
+				}
 			});
 
 		});
@@ -207,10 +207,8 @@ public class UIManager : MonoBehaviour {
 				(newPassword)=>{
 					reset_response.text = "Sucess, New Password - "+newPassword;
 				},
-				(newPasswordNull, oldPasswordIncorrect, failedPassword, strength)=>{
-					if(newPasswordNull){
-						reset_response.text = "Failed,  New Password Empty ";
-					}else if(oldPasswordIncorrect){
+				(oldPasswordIncorrect, failedPassword, strength)=>{
+					if(oldPasswordIncorrect){
 						reset_response.text = "Failed,  Old Password Invalid - "+old_password;
 					}else{
 						reset_response.text = "Failed,  Not Strong Enough - "+old_password;
@@ -239,6 +237,12 @@ public class UIManager : MonoBehaviour {
 		});
 	}
 
+	/// <summary>
+	/// manages the gamesparks log messages for printing to the screen
+	/// </summary>
+	/// <param name="logString">Log string.</param>
+	/// <param name="stackTrace">Stack trace.</param>
+	/// <param name="logType">Log type.</param>
 	void HandleLog(string logString, string stackTrace, LogType logType)
 	{
 		if (myLogQueue.Count > 30)
@@ -255,7 +259,10 @@ public class UIManager : MonoBehaviour {
 		logText.text = myLog;
 	}
 
-
+	/// <summary>
+	/// Brings the request options panel forward.
+	/// </summary>
+	/// <param name="_panel">Panel.</param>
 	private void BringPanelForward(GameObject _panel){
 		Debug.Log ("UIM| Bringing Forward "+_panel.gameObject.name);
 		menu.SetActive(false);
