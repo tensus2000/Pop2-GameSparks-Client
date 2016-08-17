@@ -4,6 +4,7 @@ using UnityEngine.SceneManagement;
 using GameSparks.Api.Responses;
 using GameSparks.Core;
 using System.Text.RegularExpressions;
+using System.Collections.Generic;
 
 public class GameSparksManager : MonoBehaviour {
 
@@ -88,6 +89,28 @@ public class GameSparksManager : MonoBehaviour {
 			Debug.LogWarning("GSM| Chacacter ID: "+characterID);
 			Debug.LogWarning("GSM| Message ID: "+messageID);
 		};
+		// ------ PRIVATE MESSAGE RECIEVED ------ //
+		GameSparks.Api.Messages.ScriptMessage_privateUserMessage.Listener += (_message) => {
+			// there are sever important pieces of information assocaited with private messages //
+			// [1] header (see global messages)
+			// [2] body (see global messages)
+			// [3] payload (see global message)
+			// [4] messageId - This is needed in order to dismiss messages
+			// [5] senderId - the characterID of the sender
+			// [6] sender-name - the sender character's name
+			string header = _message.Data.GetString("header");
+			string body = _message.Data.GetString("body");
+			GSData payload = _message.Data.GetGSData("payload");
+			string senderID = _message.Data.GetString("from");
+			string senderName = _message.Data.GetString("sender-name");
+			string messageID = _message.MessageId;
+			Debug.LogWarning("GSM| New Global Message  \n"+_message.JSONString);
+			Debug.LogWarning("GSM| Header: "+header);
+			Debug.LogWarning("GSM| Body: "+body);
+			Debug.LogWarning("GSM| Sender ID: "+senderID);
+			Debug.LogWarning("GSM| Sender Name: "+senderName);
+			Debug.LogWarning("GSM| Message ID: "+messageID);
+		};
 	}
 	
 	#region AUTHENTICATION CALLS
@@ -96,12 +119,13 @@ public class GameSparksManager : MonoBehaviour {
 	/// Can be used just to trigger some code when a request comes through (either sucessful or unsucessful)
 	/// </summary>
 	public delegate void auth_callback(AuthenticationResponse _resp);
+	public delegate void authSucess_callback(string[] characterId_list, string _lastCharacterId);
 	/// <summary>
 	/// Logs the player into the gamesparks platform
 	/// </summary>
 	/// <param name="_userName">User name.</param>
 	/// <param name="_password">Password.</param>
-	public void Authenticate(string _userName, string _password, auth_callback _onLoginSucess, auth_callback _onLoginFailed){
+	public void Authenticate(string _userName, string _password, authSucess_callback _onSucess, auth_callback _onLoginFailed){
 		Debug.Log(_userName+"|"+_password);
 		Debug.Log ("GSM| Attempting Player Authentication....");
 		new GameSparks.Api.Requests.AuthenticationRequest ()
@@ -110,8 +134,12 @@ public class GameSparksManager : MonoBehaviour {
 			.Send ((response) => {
 			if (!response.HasErrors) {
 				Debug.Log ("GSM| Authentication Sucessful \n" + response.DisplayName);
-				if(_onLoginSucess != null){
-					_onLoginSucess(response);
+				if(_onSucess != null){
+						string lastCharacterId = string.Empty;
+						if(response.ScriptData.GetString("last_character") != null){
+							lastCharacterId = response.ScriptData.GetString("last_character");
+						}
+						_onSucess(response.ScriptData.GetStringList("character_list").ToArray(), lastCharacterId);
 				}
 			} else {
 				Debug.LogWarning ("GSM| Error Authenticating Player \n " + response.Errors.JSON);
@@ -123,14 +151,16 @@ public class GameSparksManager : MonoBehaviour {
 
 	}
 
-	public delegate void reg_callback(RegistrationResponse _resp);
+
+	public delegate void regFailed_callback(string _suggestedName);
+	public delegate void regSucess_callback(RegistrationResponse _resp);
 	/// <summary>
 	/// Register the specified _userName, _displayName and _password.
 	/// </summary>
 	/// <param name="_userName">User name.</param>
 	/// <param name="_displayName">Display name.</param>
 	/// <param name="_password">Password.</param>
-	public void Register(string _userName, string _displayName, string _password, reg_callback _onLoginSucess, reg_callback _onLoginFailed){
+	public void Register(string _userName, string _displayName, string _password, regSucess_callback _onLoginSucess, regFailed_callback _onLoginFailed){
 		Debug.Log ("GSM| Attempting Registration...");
 		new GameSparks.Api.Requests.RegistrationRequest ()
 			.SetUserName (_userName)
@@ -145,7 +175,7 @@ public class GameSparksManager : MonoBehaviour {
 				}else{
 					Debug.LogWarning ("GSM| Error Registering Player \n " + response.Errors.JSON);
 					if(_onLoginFailed != null){
-						_onLoginFailed(response);
+						_onLoginFailed(response.ScriptData.GetString("suggested-name"));
 					}
 				}
 
@@ -284,11 +314,18 @@ public class GameSparksManager : MonoBehaviour {
 
 
 	#region SCENE CALLS
-
-	public void getSceneState(int _island_id, int _scene_id, logevent_callback _callback)
+	/// <summary>
+	/// Gets the state of the scene.
+	/// </summary>
+	/// <param name="character_id">Character identifier.</param>
+	/// <param name="_island_id">Island identifier.</param>
+	/// <param name="_scene_id">Scene ID</param>
+	/// <param name="_callback">Callback.</param>
+	public void GetSceneState(string character_id, int _island_id, int _scene_id, logevent_callback _callback)
 	{
 		Debug.Log ("Fecthing Scenes ...");
 		new GameSparks.Api.Requests.LogEventRequest().SetEventKey("getSceneState")
+			.SetEventAttribute("character_id", character_id)
 			.SetEventAttribute("island_id", _island_id)
 			.SetEventAttribute("scene_id", _scene_id)
 			.Send ((response) => {
@@ -303,11 +340,19 @@ public class GameSparksManager : MonoBehaviour {
 			});
 	}
 
-
-	public void setSceneState(int _island_id, int _scene_id, GSRequestData _scene_data, logevent_callback _callback)
+	/// <summary>
+	/// Sets the state of the scene.
+	/// </summary>
+	/// <param name="character_id">Character identifier.</param>
+	/// <param name="_island_id">Island identifier.</param>
+	/// <param name="_scene_id">Scene identifier.</param>
+	/// <param name="_scene_data">Scene data.</param>
+	/// <param name="_callback">Callback.</param>
+	public void SetSceneState(string character_id, int _island_id, int _scene_id, GSRequestData _scene_data, logevent_callback _callback)
 	{
 		Debug.Log ("Attempting To Set Scene State ...");
 		new GameSparks.Api.Requests.LogEventRequest().SetEventKey("setSceneState")
+			.SetEventAttribute("character_id", character_id)
 			.SetEventAttribute("island_id", _island_id)
 			.SetEventAttribute("scene_id", _scene_id)
 			.SetEventAttribute("states", _scene_data)
@@ -322,8 +367,24 @@ public class GameSparksManager : MonoBehaviour {
 				}
 			});
 	}
-
-
+	/// <summary>
+	/// Logs the player as having entered a scene
+	/// </summary>
+	/// <param name="character_id">Character ID</param>
+	/// <param name="scene_id">Scene ID</param>
+	public void EnterScene(string character_id, int scene_id){
+		Debug.Log ("Attempting To Enter Scene ...");
+		new GameSparks.Api.Requests.LogEventRequest().SetEventKey("enterScene")
+			.SetEventAttribute("character_id", character_id)
+			.SetEventAttribute("scene_id", scene_id)
+			.Send ((response) => {
+				if (!response.HasErrors) {
+					Debug.LogWarning ("GSM| Entered Set...");
+				} else {
+					Debug.LogWarning ("GSM| Error \n " + response.Errors.JSON);	
+				}
+			});
+	}
 	#endregion 
 
 
@@ -338,11 +399,14 @@ public class GameSparksManager : MonoBehaviour {
 	/// Adds XP to the player and checks that the player has reached enough XP to gain a level.
 	/// 
 	/// </summary>
+	/// <param name="_callback">character-id</param>
 	/// <param name="_amount">Amount.</param>
 	/// <param name="_callback">Callback.</param>
-	public void GiveXp(int _amount, levelAndExp_callback _callback){
+	public void GiveXp(string character_id, int _amount, levelAndExp_callback _callback){
+		
 		Debug.Log ("Attempting To Give Xp...");
 		new GameSparks.Api.Requests.LogEventRequest().SetEventKey("giveXp")
+			.SetEventAttribute("character_id", character_id)
 			.SetEventAttribute("amount", _amount)
 			.Send ((response) => {
 				if (!response.HasErrors) {
@@ -361,11 +425,13 @@ public class GameSparksManager : MonoBehaviour {
 	/// <summary>
 	/// Gets the level and experiance.
 	/// </summary>
+	/// <param name="_callback">character-id</param>
 	/// <param name="_callback">Callback, returns the level and experience</param>
-	public void GetLevelAndExperiance(levelAndExp_callback _callback){
+	public void GetLevelAndExperiance(string character_id, levelAndExp_callback _callback){
 
 		Debug.Log ("Retrieving Player Level & Experiance...");
 		new GameSparks.Api.Requests.LogEventRequest().SetEventKey("getLevelAndExperience")
+			.SetEventAttribute("character_id", character_id)
 			.Send ((response) => {
 				if (!response.HasErrors) {
 					Debug.Log ("GSM| Returned Level & XP...");
@@ -477,13 +543,285 @@ public class GameSparksManager : MonoBehaviour {
 				if (!response.HasErrors) {
 					string version = response.ScriptData.GetString("version");
 					if(version != null){
-						Debug.Log ("GSM| Server v"+version);
+						Debug.Log ("GSM| Server: "+version);
 						_callback(version);
 					}else{
 						Debug.LogError("GSM| Server Error! [server version returned 'null']");
 					}
 				} else {
 					Debug.LogWarning ("GSM| Error \n " + response.Errors.JSON);	
+				}
+			});
+	}
+	#endregion
+
+
+
+	#region Inbox System
+	/// <summary>
+	/// This delegate is used as a callback so that the list of messages can be returned instead of the whole response.
+	/// The GSData can be parsed to get the specific message data.
+	/// There is an example included in the UIManager.cs class
+	/// </summary>
+	public delegate void getMessages_callback(GSData[] _messages);
+	/// <summary>
+	/// Gets all messages from the given character_id
+	/// 
+	/// </summary>
+	/// <param name="character_id">Character identifier.</param>
+	/// <param name="type">global, private or both</param>
+	/// <param name="offset">Offset.</param>
+	/// <param name="limit">Limit.</param>
+	/// <param name="_callback">Callback.</param>
+	public void GetMessages(string character_id, string type, int offset, int limit, getMessages_callback _callback){
+		Debug.Log ("GSM| Fetching Messages For Character - "+character_id);
+		new GameSparks.Api.Requests.LogEventRequest().SetEventKey("getMessages")
+			.SetEventAttribute("character_id", character_id)
+			.SetEventAttribute("type", type)
+			.SetEventAttribute("limit", limit)
+			.SetEventAttribute("offset", offset)
+			.Send ((response) => {
+				if (!response.HasErrors) {
+					Debug.Log("GSM| Retrieved Messages....");
+					if(_callback != null){
+						_callback(response.ScriptData.GetGSDataList("messages").ToArray());
+					}
+
+				} else {
+					Debug.LogError("GSM|  Error Fetching Messages \n"+response.Errors.JSON);
+				}
+			});
+	}
+	/// <summary>
+	/// Given the character_id and recipient_id, this will send a message to that character.
+	/// If includes a header (subject) and body.
+	/// </summary>
+	/// <param name="header">Header.</param>
+	/// <param name="body">Body.</param>
+	/// <param name="characterTo">Character to.</param>
+	/// <param name="characterFrom">Character from.</param>
+	public void SendPrivateMessage(string header, string body, string characterTo, string characterFrom){
+		Debug.Log ("GSM| Sending Private Message To "+characterTo);
+		new GameSparks.Api.Requests.LogEventRequest().SetEventKey("sendPrivateMessage")
+			.SetEventAttribute("header", header)
+			.SetEventAttribute("body", body)
+			.SetEventAttribute("payload", new GSRequestData())
+			.SetEventAttribute("character_id_to", characterTo)
+			.SetEventAttribute("character_id_from", characterFrom)
+			.Send ((response) => {
+				if (!response.HasErrors) {
+					Debug.Log("GSM| Message Sent....");
+				} else {
+					Debug.LogError("GSM| Message Not Sent");
+				}
+			});
+	}
+	/// <summary>
+	/// Given the character_id and recipient_id, this will send a message to that character.
+	/// If includes a header (subject) and body.
+	/// In additional there is a field (optional) for payload, which allows specific JSON data to be sent if needed.
+	/// </summary>
+	/// <param name="header">Header.</param>
+	/// <param name="body">Body.</param>
+	/// <param name="payload">Payload.</param>
+	/// <param name="characterTo">Character to.</param>
+	/// <param name="characterFrom">Character from.</param>
+	public void SendPrivateMessage(string header, string body, GSRequestData payload, string characterTo, string characterFrom){
+		Debug.Log ("GSM| Sending Private Message To "+characterTo);
+		new GameSparks.Api.Requests.LogEventRequest().SetEventKey("sendPrivateMessage")
+			.SetEventAttribute("header", header)
+			.SetEventAttribute("body", body)
+			.SetEventAttribute("payload", payload)
+			.SetEventAttribute("character_id_to", characterTo)
+			.SetEventAttribute("character_id_from", characterFrom)
+			.Send ((response) => {
+				if (!response.HasErrors) {
+					Debug.Log("GSM| Message Sent....");
+				} else {
+					Debug.LogError("GSM| Message Not Sent");
+				}
+			});
+	}
+
+	/// <summary>
+	/// This will delete the message with the given id from the player's feed
+	/// </summary>
+	/// <param name="messageID">Message ID</param>
+	public void DeleteMessage(string messageID){
+		Debug.Log ("GSM| Deleting Message "+messageID);
+		new GameSparks.Api.Requests.LogEventRequest().SetEventKey("deleteMessage")
+			.SetEventAttribute("message_id", messageID)
+			.Send ((response) => {
+				if (!response.HasErrors) {
+					Debug.Log("GSM| Message Deleted....");
+				} else {
+					Debug.LogError("GSM| Message Not Deleted");
+				}
+			});
+	}
+
+	public void ReadMessage(string messageID){
+		Debug.Log ("GSM| Deleting Message "+messageID);
+//		new GameSparks.Api.Requests.LogEventRequest().SetEventKey("deleteMessage")
+//			.SetEventAttribute("message_id", messageID)
+//			.Send ((response) => {
+//				if (!response.HasErrors) {
+//					Debug.Log("GSM| Message Deleted....");
+//				} else {
+//					Debug.LogError("GSM| Message Not Deleted");
+//				}
+//			});
+	}
+
+
+	#endregion
+
+	#region Get Available Islands
+	/// <summary>
+	/// Gets the available islands.
+	/// </summary>
+	/// <param name="character_id">Character identifier.</param>
+	/// <param name="_callback">Callback.</param>
+	public void GetAvailableIslands(string character_id, logevent_callback _callback){
+		Debug.Log ("GSM| Fetching Available Islands...");
+		new GameSparks.Api.Requests.LogEventRequest().SetEventKey("getAvailableIslands")
+			.SetEventAttribute("character_id", character_id)
+			.Send ((response) => {
+				if (!response.HasErrors) {
+					Debug.Log("GSM| Found Islands....");
+					if(_callback != null){
+						_callback(response);
+					}
+				} else {
+					Debug.LogError("GSM| Error Fetching Islands...");
+				}
+			});
+	}
+
+	/// <summary>
+	/// Visits the island.
+	/// </summary>
+	/// <param name="island_id">Island identifier.</param>
+	/// <param name="character_id">Character identifier.</param>
+	/// <param name="_onVisitSucess">On visit sucess.</param>
+	/// <param name="_onVisitFailed">On visit failed.</param>
+	public void VisitIsland(string character_id, int island_id, logevent_callback _onVisitSucess, logevent_callback _onVisitFailed){
+		Debug.Log ("GSM|  Visiting Island...");
+		new GameSparks.Api.Requests.LogEventRequest().SetEventKey("visitIsland")
+			.SetEventAttribute("character_id", character_id)
+			.SetEventAttribute("island_id", island_id)
+			.Send ((response) => {
+				if (!response.HasErrors) {
+					Debug.Log("GSM| Character Visited Island....");
+					if(_onVisitSucess != null){
+						_onVisitSucess(response);
+					}
+				} else {
+					Debug.LogError("GSM| Error Visiting Island...");
+					if(_onVisitFailed != null){
+						_onVisitFailed(response);
+					}
+				}
+			});
+	}
+	/// <summary>
+	/// Marks a character as having left an island.
+	/// </summary>
+	/// <param name="island_id">Island identifier.</param>
+	/// <param name="character_id">Character identifier.</param>
+	public void LeaveIsland(int island_id, string character_id){
+		Debug.Log ("GSM|  Leaving Island...");
+		new GameSparks.Api.Requests.LogEventRequest().SetEventKey("leaveIsland")
+			.SetEventAttribute("character_id", character_id)
+			.SetEventAttribute("island_id", island_id)
+			.Send ((response) => {
+				if (!response.HasErrors) {
+					Debug.Log("GSM| Character Left Island....");
+				} else {
+					Debug.LogError("GSM| Error Leaving Island...");
+				}
+			});
+	}
+	/// <summary>
+	/// marks a character as having completed an island.
+	/// </summary>
+	/// <param name="island_id">Island identifier.</param>
+	/// <param name="character_id">Character identifier.</param>
+	public void CompleteIsland(string character_id, int island_id){
+		Debug.Log ("GSM|  Completing Island...");
+		new GameSparks.Api.Requests.LogEventRequest().SetEventKey("completeIsland")
+			.SetEventAttribute("character_id", character_id)
+			.SetEventAttribute("island_id", island_id)
+			.Send ((response) => {
+				if (!response.HasErrors) {
+					Debug.Log("GSM| Character Completed Island....");
+				} else {
+					Debug.LogError("GSM| Error Completing Island...");
+				}
+			});
+	}
+	#endregion
+
+
+
+	#region Character
+	/// <summary>
+	/// Gets the character information for the ID given.
+	/// </summary>
+	/// <param name="character_id">Character identifier.</param>
+	public void GetCharacter(string character_id){
+		Debug.Log ("GMS| Fetching Info For Character: "+character_id);
+		new GameSparks.Api.Requests.LogEventRequest().SetEventKey("getCharacter")
+			.SetEventAttribute("character_id", character_id)
+			.Send ((response) => {
+				if (!response.HasErrors) {
+					Debug.Log("GSM| Found Character....");
+				} else {
+					Debug.LogError("GSM| Error Fetching Character...");
+				}
+			});
+	}
+	/// <summary>
+	/// Gets the characters information in the list submitted
+	/// </summary>
+	/// <param name="character_ids">Character identifiers.</param>
+	public void GetCharacters(List<string> character_ids){
+		Debug.Log ("GMS| Fetching Info For Characters" );
+		GSRequestData id_list = new GSRequestData ().AddStringList("list", character_ids);
+		new GameSparks.Api.Requests.LogEventRequest().SetEventKey("getCharacter")
+			.SetEventAttribute("character_id", id_list)
+			.Send ((response) => {
+				if (!response.HasErrors) {
+					Debug.Log("GSM| Found Characters....");
+				} else {
+					Debug.LogError("GSM| Error Fetching Characters...");
+				}
+			});
+	}
+
+	/// <summary>
+	/// Delegate used to return the ID of the new character.
+	/// </summary>
+	public delegate void createCharacter_callback(string _newCharacterID);
+	/// <summary>
+	/// Creates a new character and returns the new character ID
+	/// </summary>
+	/// <param name="name">Name.</param>
+	/// <param name="gender">M, F, or MF</param>
+	/// <param name="_callback">Callback.</param>
+	public void CreateCharacter(string name, string gender, createCharacter_callback _callback){
+		Debug.Log ("GMS| Creating New Character: "+name);
+		new GameSparks.Api.Requests.LogEventRequest().SetEventKey("createCharacter")
+			.SetEventAttribute("name", name)
+			.SetEventAttribute("gender", gender)
+			.Send ((response) => {
+				if (!response.HasErrors) {
+					if(_callback != null){
+						_callback(response.ScriptData.GetString("new-character-id"));
+					}
+					Debug.Log("GSM| Character Created....");
+				} else {
+					Debug.LogError("GSM| Error Creating Character...");
 				}
 			});
 	}
