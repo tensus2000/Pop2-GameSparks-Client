@@ -112,39 +112,44 @@ public class GameSparksManager : MonoBehaviour {
 			Debug.LogWarning("GSM| Message ID: "+messageID);
 		};
 	}
-	
+
+	public delegate void onRequestSucess ();
+	public delegate void onRequestFailed (string errorString);
+
 	#region AUTHENTICATION CALLS
 	/// <summary>
 	/// Auth callback.
 	/// Can be used just to trigger some code when a request comes through (either sucessful or unsucessful)
 	/// </summary>
-	public delegate void auth_callback(AuthenticationResponse _resp);
-	public delegate void authSucess_callback(string[] characterId_list, string _lastCharacterId);
+	public delegate void onAuthFailed(string errorString);
+	public delegate void onAuthSucess(string[] characterId_list, string _lastCharacterId);
 	/// <summary>
 	/// Logs the player into the gamesparks platform
 	/// </summary>
 	/// <param name="_userName">User name.</param>
 	/// <param name="_password">Password.</param>
-	public void Authenticate(string _userName, string _password, authSucess_callback _onSucess, auth_callback _onLoginFailed){
-		Debug.Log(_userName+"|"+_password);
+	public void Authenticate(string userName, string password, onAuthSucess onSucess, onAuthFailed onLoginFailed){
+		Debug.Log(userName+"|"+password);
 		Debug.Log ("GSM| Attempting Player Authentication....");
 		new GameSparks.Api.Requests.AuthenticationRequest ()
-			.SetPassword (_password)
-			.SetUserName (_userName)
+			.SetPassword (password)
+			.SetUserName (userName)
 			.Send ((response) => {
 			if (!response.HasErrors) {
 				Debug.Log ("GSM| Authentication Sucessful \n" + response.DisplayName);
-				if(_onSucess != null){
+				if(onSucess != null){
 						string lastCharacterId = string.Empty;
 						if(response.ScriptData.GetString("last_character") != null){
 							lastCharacterId = response.ScriptData.GetString("last_character");
 						}
-						_onSucess(response.ScriptData.GetStringList("character_list").ToArray(), lastCharacterId);
+						onSucess(response.ScriptData.GetStringList("character_list").ToArray(), lastCharacterId);
 				}
 			} else {
 				Debug.LogWarning ("GSM| Error Authenticating Player \n " + response.Errors.JSON);
-				if(_onLoginFailed != null){
-					_onLoginFailed(response);
+				if(onLoginFailed != null){
+						if(response.Errors.GetString("DETAILS") == "UNRECOGNISED"){
+							onLoginFailed("details-unrecognised");
+						}
 				}
 			}
 		});
@@ -152,33 +157,32 @@ public class GameSparksManager : MonoBehaviour {
 	}
 
 
-	public delegate void regFailed_callback(string _suggestedName);
-	public delegate void regSucess_callback(RegistrationResponse _resp);
+	public delegate void onRegFailed(string suggestedName);
+	public delegate void onRegSucess();
 	/// <summary>
 	/// Register the specified _userName, _displayName and _password.
 	/// </summary>
 	/// <param name="_userName">User name.</param>
 	/// <param name="_displayName">Display name.</param>
 	/// <param name="_password">Password.</param>
-	public void Register(string _userName, string _displayName, string _password, regSucess_callback _onLoginSucess, regFailed_callback _onLoginFailed){
+	public void Register(string userName, string displayName, string password, onRegSucess onRegSucess, onRegFailed onRegFailed){
 		Debug.Log ("GSM| Attempting Registration...");
 		new GameSparks.Api.Requests.RegistrationRequest ()
-			.SetUserName (_userName)
-			.SetDisplayName (_displayName)
-			.SetPassword (_password)
+			.SetUserName (userName)
+			.SetDisplayName (displayName)
+			.SetPassword (password)
 			.Send ((response) => {
 				if(!response.HasErrors){
 					Debug.Log ("GSM| Registration Sucessful \n" + response.UserId);
-					if(_onLoginSucess != null){
-						_onLoginSucess(response);
+					if(onRegSucess != null){
+						onRegSucess();
 					}
 				}else{
 					Debug.LogWarning ("GSM| Error Registering Player \n " + response.Errors.JSON);
-					if(_onLoginFailed != null){
-						_onLoginFailed(response.ScriptData.GetString("suggested-name"));
+					if(onRegFailed != null && response.Errors.GetString("USERNAME") == "TAKEN"){
+						onRegFailed(response.ScriptData.GetString("suggested-name"));
 					}
 				}
-
 		});
 	}
 	#endregion
@@ -190,45 +194,77 @@ public class GameSparksManager : MonoBehaviour {
 	/// Logevent callback.
 	/// </summary>
 	public delegate void logevent_callback(LogEventResponse _resp);
+	public delegate void onGetInventory(Item[] items);
+	public delegate void onGetInventoryFailed(string errorString);
 	/// <summary>
 	/// Gets the inventory.
 	/// </summary>
-	public void getInventory(logevent_callback _callback)
+	public void GetInventory(string character_id, onGetInventory onGetInventory, onGetInventoryFailed onGetInventoryFailed)
 	{
 		Debug.Log ("GSM| Fetching Inventory Items...");
 		new GameSparks.Api.Requests.LogEventRequest ().SetEventKey ("getInventory")
+			.SetEventAttribute("character_id", character_id)
 			.Send ((response) => {
 			if (!response.HasErrors) {
 				Debug.Log("GSM| Inventory Found...");
-				if(_callback != null){
-					_callback(response);
+				if(onGetInventory != null){
+						List<Item> items = new List<Item>();
+						foreach(GSData item in response.ScriptData.GetGSDataList("item_list")){
+							items.Add(new Item(
+								item.GetInt("item_id").Value,
+								item.GetString("name"),
+								item.GetString("representation"),
+								item.GetString("icon"),
+								item.GetString("equipped"),
+								item.GetString("is_special")
+							));
+						}
+
+
+						onGetInventory(items.ToArray());
 				}
 			} else {
 				Debug.LogWarning ("GSM| Error \n " + response.Errors.JSON);
+					if(onGetInventoryFailed != null){
+						if(response.BaseData.GetGSData("error") != null){
+							Debug.LogError(response.BaseData.GetGSData("error").GetString("@getInventory"));
+							onGetInventoryFailed(response.BaseData.GetGSData("error").GetString("@getInventory"));
+						}
+					}
 			}
 		});
 	}
+		
 
-
-	public void dropItem(int _inv_id, int _scene_id, int _x, int _y, logevent_callback _callback)
+	/// <summary>
+	/// Removes the item from the player inventory
+	/// </summary>
+	/// <param name="character_id">Character ID</param>
+	/// <param name="item_id">Item ID</param>
+	/// <param name="onRequestSucess">On request sucess.</param>
+	/// <param name="onRequestFailed">On request failed.</param>
+	public void RemoveItem(string character_id, int item_id, onRequestSucess onRequestSucess, onRequestFailed onRequestFailed)
 	{
-		Debug.Log ("Attempting To Drop Item...");
-		new GameSparks.Api.Requests.LogEventRequest ().SetEventKey ("dropItem")
-			.SetEventAttribute ("inventoryItemId", _inv_id)
-			.SetEventAttribute ("sceneId", _scene_id)
-			.SetEventAttribute ("x", _x)
-			.SetEventAttribute ("y", _y)
+		Debug.Log ("Attempting To Remove Item...");
+		new GameSparks.Api.Requests.LogEventRequest ().SetEventKey ("removeItem")
+			.SetEventAttribute("character_id", character_id)
+			.SetEventAttribute ("item_id", item_id)
+			.SetDurable(true)
 			.Send ((response) => {
 			if (!response.HasErrors) {
-				Debug.LogWarning ("GSM| Item Dropped...");
-				if (_callback != null) {
-					_callback (response);
+				Debug.LogWarning ("GSM| Item  Removed...");
+					if (onRequestSucess != null) {
+						onRequestSucess ();
 				}
 			} else {
 				Debug.LogWarning ("GSM| Error \n " + response.Errors.JSON);	
+					if(response.BaseData.GetGSData("error").GetString("@removeItem") != null){
+						Debug.LogError(response.BaseData.GetGSData("error").GetString("@removeItem"));
+						onRequestFailed(response.BaseData.GetGSData("error").GetString("@removeItem"));
+					}
+				
 			}
 		});
-
 	}
 
 
@@ -554,7 +590,6 @@ public class GameSparksManager : MonoBehaviour {
 			});
 	}
 	#endregion
-
 
 
 	#region Inbox System

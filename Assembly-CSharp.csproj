@@ -69,8 +69,8 @@
      <Compile Include="Assets\Scripts\GameSparksManager.cs" />
      <Compile Include="Assets\Scripts\UIManager.cs" />
      <None Include="Assets\Plugins\Metro\GameSparksRT.xml" />
-     <None Include="Assets\GameSparks\link.xml" />
      <None Include="Assets\Plugins\GameSparksRT.xml" />
+     <None Include="Assets\GameSparks\link.xml" />
  <Reference Include="UnityEngine.Networking">
  <HintPath>/Applications/Unity/Unity.app/Contents/UnityExtensions/Unity/Networking/UnityEngine.Networking.dll</HintPath>
  </Reference>

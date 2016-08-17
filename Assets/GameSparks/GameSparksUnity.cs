@@ -18,20 +18,6 @@ public class GameSparksUnity : MonoBehaviour
 	/// You can override which connection settings GameSparks uses to connect to the backend with this member.
 	/// </summary>
     public GameSparksSettings settings;
-    public static GameSparksUnity _gsUnity;
-
-    void Awake()
-    {
-        if(!_gsUnity)
-        {
-            _gsUnity = this;
-            DontDestroyOnLoad(gameObject);
-        }
-        else
-        {
-            Destroy(gameObject);
-        }
-    }
 
 	void Start()
 	{

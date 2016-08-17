@@ -151,12 +151,18 @@ public class UIManager : MonoBehaviour {
 					server_version_txt.text = "Server Version: "+_version;
 					blockout_panel.SetActive(false);
 				});
-			}, null);
+			}, (_errorString) =>{
+				// error-string can be checked for the following errors //
+				if(_errorString == "details-unrecognised"){
+					// for when the user-name or password is incorrect //
+				}
+
+			});
 		});
 
 		reg_bttn.onClick.AddListener (() => {
 			Debug.Log("UIM| Clicked on registration button");
-			GameSparksManager.Instance().Register(reg_username_txt.text, reg_displayname.text, reg_password.text, (_resp) => {
+			GameSparksManager.Instance().Register(reg_username_txt.text, reg_displayname.text, reg_password.text, () => {
 				// here is an example of how we can use the event callbacks. //
 				// in this case, i will remove the menu-option blocker if the player has authenticated sucessfully //
 				server_version_txt.text = "Server Version: Requesting....";
@@ -164,34 +170,41 @@ public class UIManager : MonoBehaviour {
 					server_version_txt.text = "Server Version: "+_version;
 					blockout_panel.SetActive(false);
 				});
-			}, (_suggestedUsername)=>{
-				Debug.LogWarning("UIM| Suggested Username: "+_suggestedUsername);
+			}, (_suggestedName)=>{
+				Debug.LogWarning("UIM| Suggested Username: "+_suggestedName);
 			});
 		});
 
 		getInv_bttn.onClick.AddListener (() => {
 			Debug.Log("UIM| Clicked on get-inventory button");
-			GameSparksManager.Instance().getInventory((resp) => {
-				// do whatever you want with the response here //
-				Dropdown[] deleteTest = FindObjectsOfType<Dropdown>();
-				Array.Clear(deleteTest, 0, deleteTest.Length);
-				GSData scriptData = resp.ScriptData;
-				Dropdown clone = (Dropdown)Instantiate(dropdown_prefab, new Vector3(-100, 158, 0), transform.rotation);
-				clone.transform.SetParent(items.transform, false);
-				List<GSData> list = scriptData.GetGSDataList("resp");
-				List<string> opts = new List<string>();
-				int i = 0;
-				foreach (GSData name in list)
-				{
-					Debug.Log(i + ": " + name.GetString(i.ToString()));
-					if (i == 0)
-						opts.Add("(0) Equipped: " + name.GetString(i.ToString()));
-					else
-						opts.Add(i + ": " + name.GetString(i.ToString()));
-					i += 1;
+			GameSparksManager.Instance().GetInventory(character_id, (_items) => {
+				foreach(Item item in _items){
+					item.Print();
 				}
-				clone.AddOptions(opts);
-				clone.Show();
+//				// do whatever you want with the response here //
+//				Dropdown[] deleteTest = FindObjectsOfType<Dropdown>();
+//				Array.Clear(deleteTest, 0, deleteTest.Length);
+//				GSData scriptData = resp.ScriptData;
+//				Dropdown clone = (Dropdown)Instantiate(dropdown_prefab, new Vector3(-100, 158, 0), transform.rotation);
+//				clone.transform.SetParent(items.transform, false);
+//				List<GSData> list = scriptData.GetGSDataList("resp");
+//				List<string> opts = new List<string>();
+//				int i = 0;
+//				foreach (GSData name in list)
+//				{
+//					Debug.Log(i + ": " + name.GetString(i.ToString()));
+//					if (i == 0)
+//						opts.Add("(0) Equipped: " + name.GetString(i.ToString()));
+//					else
+//						opts.Add(i + ": " + name.GetString(i.ToString()));
+//					i += 1;
+//				}
+//				clone.AddOptions(opts);
+//				clone.Show();
+			}, (_errorString)=>{
+				if(_errorString == "no-inventory"){
+					// the player has no inventory
+				}
 			});
 
 
@@ -219,7 +232,7 @@ public class UIManager : MonoBehaviour {
 
 		dropItem_bttn.onClick.AddListener (() => {
 			Debug.Log ("UIM| Clicked on Drop-Item button");
-			GameSparksManager.Instance().dropItem(int.Parse(dropInvId.text), int.Parse(dropInvId.text), int.Parse(dropX.text), int.Parse(dropY.text), null);
+			GameSparksManager.Instance().RemoveItem(character_id, int.Parse(dropInvId.text), null, null);
 		});
 
 		getScene_bttn.onClick.AddListener (() => {
@@ -466,4 +479,29 @@ public class UIManager : MonoBehaviour {
 		}
 
 	}
+}
+
+
+
+
+/// sample class structures //
+
+
+public class Item{
+	public Item(int item_id, string name, string icon, string equipped, string isSpecial, string respresentaion){
+		this.item_id = item_id;
+		this.name = name;
+		this.icon = icon;
+		this.equipped = equipped;
+		this.isSpecial = isSpecial;
+		this.representation = representation;
+	}
+
+	public void Print(){
+		Debug.Log ("Item ID: "+item_id);
+	}
+
+	int item_id;
+	string name, icon, representation, isSpecial, equipped;
+
 }

@@ -9,6 +9,58 @@ using GameSparks.Api.Responses;
 //THIS FILE IS AUTO GENERATED, DO NOT MODIFY!!
 
 namespace GameSparks.Api.Requests{
+	public class LogEventRequest_moveItem : GSTypedRequest<LogEventRequest_moveItem, LogEventResponse>
+	{
+	
+		protected override GSTypedResponse BuildResponse (GSObject response){
+			return new LogEventResponse (response);
+		}
+		
+		public LogEventRequest_moveItem() : base("LogEventRequest"){
+			request.AddString("eventKey", "moveItem");
+		}
+		public LogEventRequest_moveItem Set_inventoryItemID( long value )
+		{
+			request.AddNumber("inventoryItemID", value);
+			return this;
+		}			
+		public LogEventRequest_moveItem Set_destinationSlot( long value )
+		{
+			request.AddNumber("destinationSlot", value);
+			return this;
+		}			
+	}
+	
+	public class LogChallengeEventRequest_moveItem : GSTypedRequest<LogChallengeEventRequest_moveItem, LogChallengeEventResponse>
+	{
+		public LogChallengeEventRequest_moveItem() : base("LogChallengeEventRequest"){
+			request.AddString("eventKey", "moveItem");
+		}
+		
+		protected override GSTypedResponse BuildResponse (GSObject response){
+			return new LogChallengeEventResponse (response);
+		}
+		
+		/// <summary>
+		/// The challenge ID instance to target
+		/// </summary>
+		public LogChallengeEventRequest_moveItem SetChallengeInstanceId( String challengeInstanceId )
+		{
+			request.AddString("challengeInstanceId", challengeInstanceId);
+			return this;
+		}
+		public LogChallengeEventRequest_moveItem Set_inventoryItemID( long value )
+		{
+			request.AddNumber("inventoryItemID", value);
+			return this;
+		}			
+		public LogChallengeEventRequest_moveItem Set_destinationSlot( long value )
+		{
+			request.AddNumber("destinationSlot", value);
+			return this;
+		}			
+	}
+	
 	public class LogEventRequest_createCharacter : GSTypedRequest<LogEventRequest_createCharacter, LogEventResponse>
 	{
 	
@@ -115,12 +167,11 @@ namespace GameSparks.Api.Requests{
 		public LogEventRequest_getCharacter() : base("LogEventRequest"){
 			request.AddString("eventKey", "getCharacter");
 		}
-		
-		public LogEventRequest_getCharacter Set_char_id( string value )
+		public LogEventRequest_getCharacter Set_character_id( GSData value )
 		{
-			request.AddString("char_id", value);
+			request.AddObject("character_id", value);
 			return this;
-		}
+		}			
 	}
 	
 	public class LogChallengeEventRequest_getCharacter : GSTypedRequest<LogChallengeEventRequest_getCharacter, LogChallengeEventResponse>
@@ -141,11 +192,12 @@ namespace GameSparks.Api.Requests{
 			request.AddString("challengeInstanceId", challengeInstanceId);
 			return this;
 		}
-		public LogChallengeEventRequest_getCharacter Set_char_id( string value )
+		public LogChallengeEventRequest_getCharacter Set_character_id( GSData value )
 		{
-			request.AddString("char_id", value);
+			request.AddObject("character_id", value);
 			return this;
 		}
+		
 	}
 	
 	public class LogEventRequest_getOutfit : GSTypedRequest<LogEventRequest_getOutfit, LogEventResponse>
@@ -206,6 +258,12 @@ namespace GameSparks.Api.Requests{
 			request.AddNumber("adornment_id", value);
 			return this;
 		}			
+		
+		public LogEventRequest_isAdornmentAvailable Set_character_id( string value )
+		{
+			request.AddString("character_id", value);
+			return this;
+		}
 	}
 	
 	public class LogChallengeEventRequest_isAdornmentAvailable : GSTypedRequest<LogChallengeEventRequest_isAdornmentAvailable, LogChallengeEventResponse>
@@ -229,6 +287,64 @@ namespace GameSparks.Api.Requests{
 		public LogChallengeEventRequest_isAdornmentAvailable Set_adornment_id( long value )
 		{
 			request.AddNumber("adornment_id", value);
+			return this;
+		}			
+		public LogChallengeEventRequest_isAdornmentAvailable Set_character_id( string value )
+		{
+			request.AddString("character_id", value);
+			return this;
+		}
+	}
+	
+	public class LogEventRequest_setFixedCostume : GSTypedRequest<LogEventRequest_setFixedCostume, LogEventResponse>
+	{
+	
+		protected override GSTypedResponse BuildResponse (GSObject response){
+			return new LogEventResponse (response);
+		}
+		
+		public LogEventRequest_setFixedCostume() : base("LogEventRequest"){
+			request.AddString("eventKey", "setFixedCostume");
+		}
+		
+		public LogEventRequest_setFixedCostume Set_character_id( string value )
+		{
+			request.AddString("character_id", value);
+			return this;
+		}
+		public LogEventRequest_setFixedCostume Set_outfit_id( long value )
+		{
+			request.AddNumber("outfit_id", value);
+			return this;
+		}			
+	}
+	
+	public class LogChallengeEventRequest_setFixedCostume : GSTypedRequest<LogChallengeEventRequest_setFixedCostume, LogChallengeEventResponse>
+	{
+		public LogChallengeEventRequest_setFixedCostume() : base("LogChallengeEventRequest"){
+			request.AddString("eventKey", "setFixedCostume");
+		}
+		
+		protected override GSTypedResponse BuildResponse (GSObject response){
+			return new LogChallengeEventResponse (response);
+		}
+		
+		/// <summary>
+		/// The challenge ID instance to target
+		/// </summary>
+		public LogChallengeEventRequest_setFixedCostume SetChallengeInstanceId( String challengeInstanceId )
+		{
+			request.AddString("challengeInstanceId", challengeInstanceId);
+			return this;
+		}
+		public LogChallengeEventRequest_setFixedCostume Set_character_id( string value )
+		{
+			request.AddString("character_id", value);
+			return this;
+		}
+		public LogChallengeEventRequest_setFixedCostume Set_outfit_id( long value )
+		{
+			request.AddNumber("outfit_id", value);
 			return this;
 		}			
 	}
@@ -696,6 +812,48 @@ namespace GameSparks.Api.Requests{
 		}
 	}
 	
+	public class LogEventRequest_getInteractiveObject : GSTypedRequest<LogEventRequest_getInteractiveObject, LogEventResponse>
+	{
+	
+		protected override GSTypedResponse BuildResponse (GSObject response){
+			return new LogEventResponse (response);
+		}
+		
+		public LogEventRequest_getInteractiveObject() : base("LogEventRequest"){
+			request.AddString("eventKey", "getInteractiveObject");
+		}
+		public LogEventRequest_getInteractiveObject Set_interactive_object_id( long value )
+		{
+			request.AddNumber("interactive_object_id", value);
+			return this;
+		}			
+	}
+	
+	public class LogChallengeEventRequest_getInteractiveObject : GSTypedRequest<LogChallengeEventRequest_getInteractiveObject, LogChallengeEventResponse>
+	{
+		public LogChallengeEventRequest_getInteractiveObject() : base("LogChallengeEventRequest"){
+			request.AddString("eventKey", "getInteractiveObject");
+		}
+		
+		protected override GSTypedResponse BuildResponse (GSObject response){
+			return new LogChallengeEventResponse (response);
+		}
+		
+		/// <summary>
+		/// The challenge ID instance to target
+		/// </summary>
+		public LogChallengeEventRequest_getInteractiveObject SetChallengeInstanceId( String challengeInstanceId )
+		{
+			request.AddString("challengeInstanceId", challengeInstanceId);
+			return this;
+		}
+		public LogChallengeEventRequest_getInteractiveObject Set_interactive_object_id( long value )
+		{
+			request.AddNumber("interactive_object_id", value);
+			return this;
+		}			
+	}
+	
 	public class LogEventRequest_completeIsland : GSTypedRequest<LogEventRequest_completeIsland, LogEventResponse>
 	{
 	
@@ -711,6 +869,12 @@ namespace GameSparks.Api.Requests{
 			request.AddNumber("island_id", value);
 			return this;
 		}			
+		
+		public LogEventRequest_completeIsland Set_character_id( string value )
+		{
+			request.AddString("character_id", value);
+			return this;
+		}
 	}
 	
 	public class LogChallengeEventRequest_completeIsland : GSTypedRequest<LogChallengeEventRequest_completeIsland, LogChallengeEventResponse>
@@ -736,6 +900,11 @@ namespace GameSparks.Api.Requests{
 			request.AddNumber("island_id", value);
 			return this;
 		}			
+		public LogChallengeEventRequest_completeIsland Set_character_id( string value )
+		{
+			request.AddString("character_id", value);
+			return this;
+		}
 	}
 	
 	public class LogEventRequest_enterScene : GSTypedRequest<LogEventRequest_enterScene, LogEventResponse>
@@ -748,10 +917,15 @@ namespace GameSparks.Api.Requests{
 		public LogEventRequest_enterScene() : base("LogEventRequest"){
 			request.AddString("eventKey", "enterScene");
 		}
-		
-		public LogEventRequest_enterScene Set_scene_id( string value )
+		public LogEventRequest_enterScene Set_scene_id( long value )
 		{
-			request.AddString("scene_id", value);
+			request.AddNumber("scene_id", value);
+			return this;
+		}			
+		
+		public LogEventRequest_enterScene Set_character_id( string value )
+		{
+			request.AddString("character_id", value);
 			return this;
 		}
 	}
@@ -774,9 +948,14 @@ namespace GameSparks.Api.Requests{
 			request.AddString("challengeInstanceId", challengeInstanceId);
 			return this;
 		}
-		public LogChallengeEventRequest_enterScene Set_scene_id( string value )
+		public LogChallengeEventRequest_enterScene Set_scene_id( long value )
 		{
-			request.AddString("scene_id", value);
+			request.AddNumber("scene_id", value);
+			return this;
+		}			
+		public LogChallengeEventRequest_enterScene Set_character_id( string value )
+		{
+			request.AddString("character_id", value);
 			return this;
 		}
 	}
@@ -790,6 +969,12 @@ namespace GameSparks.Api.Requests{
 		
 		public LogEventRequest_getAvailableIslands() : base("LogEventRequest"){
 			request.AddString("eventKey", "getAvailableIslands");
+		}
+		
+		public LogEventRequest_getAvailableIslands Set_character_id( string value )
+		{
+			request.AddString("character_id", value);
+			return this;
 		}
 	}
 	
@@ -811,6 +996,11 @@ namespace GameSparks.Api.Requests{
 			request.AddString("challengeInstanceId", challengeInstanceId);
 			return this;
 		}
+		public LogChallengeEventRequest_getAvailableIslands Set_character_id( string value )
+		{
+			request.AddString("character_id", value);
+			return this;
+		}
 	}
 	
 	public class LogEventRequest_leaveIsland : GSTypedRequest<LogEventRequest_leaveIsland, LogEventResponse>
@@ -828,6 +1018,12 @@ namespace GameSparks.Api.Requests{
 			request.AddNumber("island_id", value);
 			return this;
 		}			
+		
+		public LogEventRequest_leaveIsland Set_character_id( string value )
+		{
+			request.AddString("character_id", value);
+			return this;
+		}
 	}
 	
 	public class LogChallengeEventRequest_leaveIsland : GSTypedRequest<LogChallengeEventRequest_leaveIsland, LogChallengeEventResponse>
@@ -853,6 +1049,11 @@ namespace GameSparks.Api.Requests{
 			request.AddNumber("island_id", value);
 			return this;
 		}			
+		public LogChallengeEventRequest_leaveIsland Set_character_id( string value )
+		{
+			request.AddString("character_id", value);
+			return this;
+		}
 	}
 	
 	public class LogEventRequest_visitIsland : GSTypedRequest<LogEventRequest_visitIsland, LogEventResponse>
@@ -865,10 +1066,15 @@ namespace GameSparks.Api.Requests{
 		public LogEventRequest_visitIsland() : base("LogEventRequest"){
 			request.AddString("eventKey", "visitIsland");
 		}
-		
-		public LogEventRequest_visitIsland Set_island_id( string value )
+		public LogEventRequest_visitIsland Set_island_id( long value )
 		{
-			request.AddString("island_id", value);
+			request.AddNumber("island_id", value);
+			return this;
+		}			
+		
+		public LogEventRequest_visitIsland Set_character_id( string value )
+		{
+			request.AddString("character_id", value);
 			return this;
 		}
 	}
@@ -891,9 +1097,14 @@ namespace GameSparks.Api.Requests{
 			request.AddString("challengeInstanceId", challengeInstanceId);
 			return this;
 		}
-		public LogChallengeEventRequest_visitIsland Set_island_id( string value )
+		public LogChallengeEventRequest_visitIsland Set_island_id( long value )
 		{
-			request.AddString("island_id", value);
+			request.AddNumber("island_id", value);
+			return this;
+		}			
+		public LogChallengeEventRequest_visitIsland Set_character_id( string value )
+		{
+			request.AddString("character_id", value);
 			return this;
 		}
 	}
@@ -917,6 +1128,12 @@ namespace GameSparks.Api.Requests{
 		public LogEventRequest_equipItem Set_equip_location( string value )
 		{
 			request.AddString("equip_location", value);
+			return this;
+		}
+		
+		public LogEventRequest_equipItem Set_character_id( string value )
+		{
+			request.AddString("character_id", value);
 			return this;
 		}
 	}
@@ -949,6 +1166,11 @@ namespace GameSparks.Api.Requests{
 			request.AddString("equip_location", value);
 			return this;
 		}
+		public LogChallengeEventRequest_equipItem Set_character_id( string value )
+		{
+			request.AddString("character_id", value);
+			return this;
+		}
 	}
 	
 	public class LogEventRequest_getInventory : GSTypedRequest<LogEventRequest_getInventory, LogEventResponse>
@@ -960,6 +1182,12 @@ namespace GameSparks.Api.Requests{
 		
 		public LogEventRequest_getInventory() : base("LogEventRequest"){
 			request.AddString("eventKey", "getInventory");
+		}
+		
+		public LogEventRequest_getInventory Set_character_id( string value )
+		{
+			request.AddString("character_id", value);
+			return this;
 		}
 	}
 	
@@ -981,58 +1209,11 @@ namespace GameSparks.Api.Requests{
 			request.AddString("challengeInstanceId", challengeInstanceId);
 			return this;
 		}
-	}
-	
-	public class LogEventRequest_moveItem : GSTypedRequest<LogEventRequest_moveItem, LogEventResponse>
-	{
-	
-		protected override GSTypedResponse BuildResponse (GSObject response){
-			return new LogEventResponse (response);
-		}
-		
-		public LogEventRequest_moveItem() : base("LogEventRequest"){
-			request.AddString("eventKey", "moveItem");
-		}
-		public LogEventRequest_moveItem Set_inventoryItemID( long value )
+		public LogChallengeEventRequest_getInventory Set_character_id( string value )
 		{
-			request.AddNumber("inventoryItemID", value);
-			return this;
-		}			
-		public LogEventRequest_moveItem Set_destinationSlot( long value )
-		{
-			request.AddNumber("destinationSlot", value);
-			return this;
-		}			
-	}
-	
-	public class LogChallengeEventRequest_moveItem : GSTypedRequest<LogChallengeEventRequest_moveItem, LogChallengeEventResponse>
-	{
-		public LogChallengeEventRequest_moveItem() : base("LogChallengeEventRequest"){
-			request.AddString("eventKey", "moveItem");
-		}
-		
-		protected override GSTypedResponse BuildResponse (GSObject response){
-			return new LogChallengeEventResponse (response);
-		}
-		
-		/// <summary>
-		/// The challenge ID instance to target
-		/// </summary>
-		public LogChallengeEventRequest_moveItem SetChallengeInstanceId( String challengeInstanceId )
-		{
-			request.AddString("challengeInstanceId", challengeInstanceId);
+			request.AddString("character_id", value);
 			return this;
 		}
-		public LogChallengeEventRequest_moveItem Set_inventoryItemID( long value )
-		{
-			request.AddNumber("inventoryItemID", value);
-			return this;
-		}			
-		public LogChallengeEventRequest_moveItem Set_destinationSlot( long value )
-		{
-			request.AddNumber("destinationSlot", value);
-			return this;
-		}			
 	}
 	
 	public class LogEventRequest_pickUpItem : GSTypedRequest<LogEventRequest_pickUpItem, LogEventResponse>
@@ -1055,6 +1236,12 @@ namespace GameSparks.Api.Requests{
 			request.AddNumber("sceneId", value);
 			return this;
 		}			
+		
+		public LogEventRequest_pickUpItem Set_character_id( string value )
+		{
+			request.AddString("character_id", value);
+			return this;
+		}
 	}
 	
 	public class LogChallengeEventRequest_pickUpItem : GSTypedRequest<LogChallengeEventRequest_pickUpItem, LogChallengeEventResponse>
@@ -1085,6 +1272,11 @@ namespace GameSparks.Api.Requests{
 			request.AddNumber("sceneId", value);
 			return this;
 		}			
+		public LogChallengeEventRequest_pickUpItem Set_character_id( string value )
+		{
+			request.AddString("character_id", value);
+			return this;
+		}
 	}
 	
 	public class LogEventRequest_removeItem : GSTypedRequest<LogEventRequest_removeItem, LogEventResponse>
@@ -1102,6 +1294,12 @@ namespace GameSparks.Api.Requests{
 			request.AddNumber("item_id", value);
 			return this;
 		}			
+		
+		public LogEventRequest_removeItem Set_character_id( string value )
+		{
+			request.AddString("character_id", value);
+			return this;
+		}
 	}
 	
 	public class LogChallengeEventRequest_removeItem : GSTypedRequest<LogChallengeEventRequest_removeItem, LogChallengeEventResponse>
@@ -1127,6 +1325,11 @@ namespace GameSparks.Api.Requests{
 			request.AddNumber("item_id", value);
 			return this;
 		}			
+		public LogChallengeEventRequest_removeItem Set_character_id( string value )
+		{
+			request.AddString("character_id", value);
+			return this;
+		}
 	}
 	
 	public class LogEventRequest_useItem : GSTypedRequest<LogEventRequest_useItem, LogEventResponse>
@@ -1144,6 +1347,12 @@ namespace GameSparks.Api.Requests{
 			request.AddNumber("item_id", value);
 			return this;
 		}			
+		
+		public LogEventRequest_useItem Set_character_id( string value )
+		{
+			request.AddString("character_id", value);
+			return this;
+		}
 	}
 	
 	public class LogChallengeEventRequest_useItem : GSTypedRequest<LogChallengeEventRequest_useItem, LogChallengeEventResponse>
@@ -1169,6 +1378,11 @@ namespace GameSparks.Api.Requests{
 			request.AddNumber("item_id", value);
 			return this;
 		}			
+		public LogChallengeEventRequest_useItem Set_character_id( string value )
+		{
+			request.AddString("character_id", value);
+			return this;
+		}
 	}
 	
 	public class LogEventRequest_getActiveQuests : GSTypedRequest<LogEventRequest_getActiveQuests, LogEventResponse>
@@ -1223,6 +1437,12 @@ namespace GameSparks.Api.Requests{
 			request.AddNumber("island_id", value);
 			return this;
 		}			
+		
+		public LogEventRequest_getSceneState Set_character_id( string value )
+		{
+			request.AddString("character_id", value);
+			return this;
+		}
 	}
 	
 	public class LogChallengeEventRequest_getSceneState : GSTypedRequest<LogChallengeEventRequest_getSceneState, LogChallengeEventResponse>
@@ -1253,6 +1473,11 @@ namespace GameSparks.Api.Requests{
 			request.AddNumber("island_id", value);
 			return this;
 		}			
+		public LogChallengeEventRequest_getSceneState Set_character_id( string value )
+		{
+			request.AddString("character_id", value);
+			return this;
+		}
 	}
 	
 	public class LogEventRequest_setSceneState : GSTypedRequest<LogEventRequest_setSceneState, LogEventResponse>
@@ -1280,6 +1505,12 @@ namespace GameSparks.Api.Requests{
 			request.AddObject("states", value);
 			return this;
 		}			
+		
+		public LogEventRequest_setSceneState Set_character_id( string value )
+		{
+			request.AddString("character_id", value);
+			return this;
+		}
 	}
 	
 	public class LogChallengeEventRequest_setSceneState : GSTypedRequest<LogChallengeEventRequest_setSceneState, LogChallengeEventResponse>
@@ -1316,6 +1547,11 @@ namespace GameSparks.Api.Requests{
 			return this;
 		}
 		
+		public LogChallengeEventRequest_setSceneState Set_character_id( string value )
+		{
+			request.AddString("character_id", value);
+			return this;
+		}
 	}
 	
 	public class LogEventRequest_getServerVersion : GSTypedRequest<LogEventRequest_getServerVersion, LogEventResponse>
@@ -1457,6 +1693,12 @@ namespace GameSparks.Api.Requests{
 		public LogEventRequest_getLevelAndExperience() : base("LogEventRequest"){
 			request.AddString("eventKey", "getLevelAndExperience");
 		}
+		
+		public LogEventRequest_getLevelAndExperience Set_character_id( string value )
+		{
+			request.AddString("character_id", value);
+			return this;
+		}
 	}
 	
 	public class LogChallengeEventRequest_getLevelAndExperience : GSTypedRequest<LogChallengeEventRequest_getLevelAndExperience, LogChallengeEventResponse>
@@ -1477,6 +1719,11 @@ namespace GameSparks.Api.Requests{
 			request.AddString("challengeInstanceId", challengeInstanceId);
 			return this;
 		}
+		public LogChallengeEventRequest_getLevelAndExperience Set_character_id( string value )
+		{
+			request.AddString("character_id", value);
+			return this;
+		}
 	}
 	
 	public class LogEventRequest_giveXp : GSTypedRequest<LogEventRequest_giveXp, LogEventResponse>
@@ -1494,6 +1741,12 @@ namespace GameSparks.Api.Requests{
 			request.AddNumber("amount", value);
 			return this;
 		}			
+		
+		public LogEventRequest_giveXp Set_character_id( string value )
+		{
+			request.AddString("character_id", value);
+			return this;
+		}
 	}
 	
 	public class LogChallengeEventRequest_giveXp : GSTypedRequest<LogChallengeEventRequest_giveXp, LogChallengeEventResponse>
@@ -1519,6 +1772,11 @@ namespace GameSparks.Api.Requests{
 			request.AddNumber("amount", value);
 			return this;
 		}			
+		public LogChallengeEventRequest_giveXp Set_character_id( string value )
+		{
+			request.AddString("character_id", value);
+			return this;
+		}
 	}
 	
 }
