@@ -356,7 +356,7 @@ public class GameSparksManager : MonoBehaviour {
 					List<Item> items = new List<Item> ();
 					// go through all the items in teh response and cache them to be returned by the callback //
 					foreach (GSData item in response.ScriptData.GetGSDataList("item_list")) {
-						items.Add (new Item (item.GetInt ("item_id").Value, item.GetString ("name"), item.GetString ("representation"), item.GetString ("icon"), item.GetString ("equipped"), item.GetString ("is_special")));
+						items.Add (new Item (item.GetInt ("item_id").Value, item.GetString ("name"),item.GetString ("icon"), item.GetString ("equipped"), item.GetString ("is_special"),item.GetString ("representation")));
 					}
 					onGetInventory (items.ToArray ());
 				}

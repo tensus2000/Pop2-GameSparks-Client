@@ -152,6 +152,7 @@ public class UIManager : MonoBehaviour {
 		auth_bttn.onClick.AddListener (() => {
 			Debug.Log ("UIM| Clicked on authentication button");
 			GameSparksManager.Instance ().Authenticate (auth_username_txt.text, auth_password_input.text, (_characterIds, _lastCharacter) => {
+				Debug.Log("UIM| Authentication Sucessful...");
 				// here is an example of how we can use the event callbacks. //
 				// in this case, i will remove the menu-option blocker if the player has authenticated sucessfully //
 
@@ -175,6 +176,7 @@ public class UIManager : MonoBehaviour {
 				// error-string can be checked for the following errors //
 				if (_errorString == "details-unrecognised") {
 					// for when the user-name or password is incorrect //
+					Debug.LogWarning("UIM| Player Details Incorrect..");
 				}
 			});
 		});
@@ -475,6 +477,18 @@ public class UIManager : MonoBehaviour {
 			GameSparksManager.Instance ().CreateCharacter (char_name_input.text, char_gender_input.text, (_newCharacterID) => {
 				Debug.Log ("UIM| Character ID:" + _newCharacterID);
 				character_id = _newCharacterID;
+
+				// when we create the character we can call the get-level and XP request again to get the right fields //
+				GameSparksManager.Instance ().GetLevelAndExperiance (character_id, (_level, _xp) => {
+					xpText.text = _xp.ToString();
+					levelText.text = _level.ToString();
+					Debug.Log("XP:"+_xp+", Level:"+_level);
+				}, (_errorString)=>{
+					if(_errorString == "invalid-character-id"){
+						Debug.LogError("UIM| Invalid CHARACTER ID");
+					}
+				});
+
 			}, (_errorString) => {
 				if (_errorString == "name-already-taken") {
 					Debug.LogError ("UIM| Character Name Taken");
