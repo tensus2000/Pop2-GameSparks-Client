@@ -1016,6 +1016,7 @@ public class GameSparksManager : MonoBehaviour {
 		new GameSparks.Api.Requests.LogEventRequest ().SetEventKey ("createCharacter")
 			.SetEventAttribute ("name", name)
 			.SetEventAttribute ("gender", gender)
+			.SetDurable(true)
 			.Send ((response) => {
 			if (!response.HasErrors) {
 				Debug.Log ("GSM| Character Created....");
@@ -1058,6 +1059,7 @@ public class GameSparksManager : MonoBehaviour {
 			new GameSparks.Api.Requests.LogEventRequest ().SetEventKey ("setOutfit")
 				.SetEventAttribute ("character_id", character_id)
 				.SetEventAttribute ("outfit", outfitData)
+				.SetDurable(true)
 				.Send ((response) => {
 				if (!response.HasErrors) {
 					Debug.Log ("GSM| Outfit Set....");
@@ -1236,6 +1238,7 @@ public class GameSparksManager : MonoBehaviour {
 		new GameSparks.Api.Requests.LogEventRequest ().SetEventKey ("setFixedCostume")
 			.SetEventAttribute ("character_id", character_id)
 			.SetEventAttribute ("outfit_id", outfit_id)
+			.SetDurable(true)
 			.Send ((response) => {
 			if (!response.HasErrors) {
 				Debug.Log ("GSM| Adornments Retrieved....");
