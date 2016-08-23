@@ -48,7 +48,6 @@
      <Compile Include="Assets\GameSparks\GameSparksRTUnity.cs" />
      <Compile Include="Assets\GameSparks\GameSparksSettings.cs" />
      <Compile Include="Assets\GameSparks\GameSparksUnity.cs" />
-     <Compile Include="Assets\GameSparks\MyGameSparks.cs" />
      <Compile Include="Assets\GameSparks\Platforms\DefaultPlatform.cs" />
      <Compile Include="Assets\GameSparks\Platforms\IControlledTimer.cs" />
      <Compile Include="Assets\GameSparks\Platforms\IControlledWebSocket.cs" />

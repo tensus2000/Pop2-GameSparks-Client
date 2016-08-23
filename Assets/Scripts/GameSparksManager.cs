@@ -6,6 +6,9 @@ using GameSparks.Core;
 using System.Text.RegularExpressions;
 using System.Collections.Generic;
 using GameSparks.Api.Messages;
+using System;
+
+
 /// <summary>
 /// GameSparks Manager Class
 /// To setup this class, add it to an empty gameobject and also attach the class GameSparksUnity.cs
@@ -487,12 +490,12 @@ public class GameSparksManager : MonoBehaviour {
 	/// <param name="_callback">character-id</param>
 	/// <param name="_amount">Amount.</param>
 	/// <param name="_callback">Callback.</param>
-	public void GiveExperience(string character_id, int _amount, onLevelAndExperiance _callback, onRequestFailed onRequestFailed)
+	public void GiveExperience(string character_id, int amount, onLevelAndExperiance onLevelAndExperiance, onRequestFailed onRequestFailed)
 	{
 		Debug.Log ("Attempting To Give Xp...");
 		new GameSparks.Api.Requests.LogEventRequest ().SetEventKey ("giveXp")
 			.SetEventAttribute ("character_id", character_id)
-			.SetEventAttribute ("amount", _amount)
+			.SetEventAttribute ("amount", amount)
 			.SetDurable (true)
 			.Send ((response) => {
 			if (!response.HasErrors) {
@@ -500,7 +503,7 @@ public class GameSparksManager : MonoBehaviour {
 				// first we get the json where the level and experiance is //
 				GSData resp = response.ScriptData.GetGSData ("player_details");
 				// then we pass the level and xp into the callback //
-				_callback (resp.GetInt ("level").Value, resp.GetInt ("experience").Value);
+				onLevelAndExperiance (resp.GetInt ("level").Value, resp.GetInt ("experience").Value);
 			} else {
 				Debug.LogWarning ("GSM| Error \n " + response.Errors.JSON);	
 			}
@@ -518,7 +521,7 @@ public class GameSparksManager : MonoBehaviour {
 	/// </summary>
 	/// <param name="_callback">character-id</param>
 	/// <param name="_callback">Callback, returns the level and experience</param>
-	public void GetLevelAndExperiance(string character_id, onLevelAndExperiance _callback, onRequestFailed onRequestFailed)
+	public void GetLevelAndExperiance(string character_id, onLevelAndExperiance onLevelAndExperiance, onRequestFailed onRequestFailed)
 	{
 		Debug.Log ("Retrieving Player Level & Experiance...");
 		new GameSparks.Api.Requests.LogEventRequest ().SetEventKey ("getLevelAndExperience")
@@ -529,7 +532,7 @@ public class GameSparksManager : MonoBehaviour {
 				// first we get the json where the level and experiance is //
 				GSData resp = response.ScriptData.GetGSData ("player_details");
 				// then we pass the level and xp into the callback //
-				_callback (resp.GetInt ("level").Value, resp.GetInt ("experience").Value);
+				onLevelAndExperiance (resp.GetInt ("level").Value, resp.GetInt ("experience").Value);
 			} else {
 				Debug.LogWarning ("GSM| Error \n " + response.Errors.JSON);	
 				if (onRequestFailed != null && response.Errors.GetString ("@getLevelAndExperience") != null) {
@@ -541,6 +544,29 @@ public class GameSparksManager : MonoBehaviour {
 	#endregion
 
 	#region Player API calls
+
+	/// <summary>
+	/// Sends the reset password email.
+	/// </summary>
+	/// <param name="email">Email.</param>
+	/// <param name="onRequestSucess">On request sucess.</param>
+	public void SendResetPasswordEmail( onRequestSucess onRequestSucess, onRequestFailed onRequestFailed){
+		Debug.Log ("Sending Password Reset Email...");
+		new GameSparks.Api.Requests.LogEventRequest ().SetEventKey ("sendResetPasswordEmail")
+			.Send ((response) => {
+			if (!response.HasErrors) {
+				Debug.Log ("GSM| Email Sent...");
+				onRequestSucess ();
+			} else {
+				Debug.LogWarning ("GSM| Error \n " + response.Errors.JSON);	
+				if (onRequestFailed != null && response.Errors.GetString ("@sendResetPasswordEmail") != null) {
+					onRequestFailed (response.Errors.GetString ("@sendResetPasswordEmail"));
+				}
+			}
+		});
+	}
+
+
 	/// <summary>
 	/// Reset password on sucess callback.
 	/// </summary>
@@ -1290,3 +1316,59 @@ public class GameSparksManager : MonoBehaviour {
 }
 
 
+namespace GameSparks.Api.Messages {
+
+	public class ScriptMessage_globalUserMessage : ScriptMessage {
+
+		public new static Action<ScriptMessage_globalUserMessage> Listener;
+
+		public ScriptMessage_globalUserMessage(GSData data) : base(data){}
+
+		private static ScriptMessage_globalUserMessage Create(GSData data)
+		{
+			ScriptMessage_globalUserMessage message = new ScriptMessage_globalUserMessage (data);
+			return message;
+		}
+
+		static ScriptMessage_globalUserMessage()
+		{
+			handlers.Add (".ScriptMessage_globalUserMessage", Create);
+
+		}
+
+		override public void NotifyListeners()
+		{
+			if (Listener != null)
+			{
+				Listener (this);
+			}
+		}
+	}
+	public class ScriptMessage_privateUserMessage : ScriptMessage {
+
+		public new static Action<ScriptMessage_privateUserMessage> Listener;
+
+		public ScriptMessage_privateUserMessage(GSData data) : base(data){}
+
+		private static ScriptMessage_privateUserMessage Create(GSData data)
+		{
+			ScriptMessage_privateUserMessage message = new ScriptMessage_privateUserMessage (data);
+			return message;
+		}
+
+		static ScriptMessage_privateUserMessage()
+		{
+			handlers.Add (".ScriptMessage_privateUserMessage", Create);
+
+		}
+
+		override public void NotifyListeners()
+		{
+			if (Listener != null)
+			{
+				Listener (this);
+			}
+		}
+	}
+
+}

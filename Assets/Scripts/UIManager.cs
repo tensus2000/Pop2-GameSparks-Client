@@ -50,7 +50,6 @@ public class UIManager : MonoBehaviour {
 	public Button get_messages_btt;
 	public InputField message_type, message_offset, message_limit;
 
-
 	public Button delete_bttn, read_message_bttn;
 	public InputField message_id;
 
@@ -73,6 +72,8 @@ public class UIManager : MonoBehaviour {
 	public Button set_fixed_costume_bttn, get_adornments_bttn, is_adornments_available_bttn, get_adornment_bttn, get_outfit_bttn, set_outfit_bttn;
 	public InputField check_adornment_id, fixed_costume_id;
 	public InputField hair_col, skin_col, shirt, pants, hair, helmet, faceMark; 
+
+	public Button sendResetEmail_bttn;
 
 
 	// Use this for initialization
@@ -350,6 +351,18 @@ public class UIManager : MonoBehaviour {
 			}, (_errorString) => {
 				if (_errorString == "invalid-email") {
 					Debug.LogError ("UIM| Email Invalid");
+				}
+			});
+		});
+
+		sendResetEmail_bttn.onClick.AddListener (() => {
+			Debug.Log ("UIM| Clicked On Send Password Reset Button...");
+			GameSparksManager.Instance ().SendResetPasswordEmail ( () => {
+				// parent email pending validation	
+				Debug.Log ("UIM| Email Sent...");
+			}, (_errorString) => {
+				if (_errorString == "no-email-registered") {
+					Debug.LogError ("UIM| No Email Registered...");
 				}
 			});
 		});
