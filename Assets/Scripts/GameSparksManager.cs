@@ -485,6 +485,40 @@ public class GameSparksManager : MonoBehaviour {
 
 	#region Character API calls
 	/// <summary>
+	/// call the http reques to teh gamesparks endpoint in order to generate a new character name.
+	/// this si required, as gamesparks needs authentication in order to do log-event requests.
+	/// This circumvents that by returning what is in the endpoint.
+	/// </summary>
+	/// <returns>The names request.</returns>
+	/// <param name="onCharacterName">On character name.</param>
+	/// <param name="onRequestFailed">On request failed.</param>
+	private IEnumerator generateNamesRequest(onCharacterName onCharacterName, onRequestFailed onRequestFailed){
+		WWW genNamesRequest = new WWW ("https://preview.gamesparks.net/callback/E300018ZDdAx/generateName/YR5w9F53GYeMsP8LTBqijeeAsPM66v7J");
+		yield return genNamesRequest;
+		// once we have the response we can parse it to an object from the josn using gsdata //
+		GSRequestData respData = new GSRequestData (genNamesRequest.text);
+		if (respData.GetString ("name") != null) {
+			onCharacterName(respData.GetString ("name"));
+		} else if (respData.GetString ("error") != null) {
+			onRequestFailed (respData.GetString ("error"));
+		}
+	}
+	/// <summary>
+	/// returns the name of the character
+	/// </summary>
+	public delegate void onCharacterName(string name);
+	/// <summary>
+	/// Generates the name of the character.
+	/// Calls a coroutine to get a http-request
+	/// </summary>
+	/// <param name="onCharacterName">On character name.</param>
+	/// <param name="onRequestFailed">On request failed.</param>
+	public void GenerateCharacterName(onCharacterName onCharacterName, onRequestFailed onRequestFailed){
+		Debug.Log ("GSM| Fetching New Character Name...");
+		StartCoroutine (generateNamesRequest (onCharacterName, onRequestFailed));
+	}
+
+	/// <summary>
 	/// Adds XP to the player and checks that the player has reached enough XP to gain a level.
 	/// </summary>
 	/// <param name="_callback">character-id</param>
@@ -492,7 +526,7 @@ public class GameSparksManager : MonoBehaviour {
 	/// <param name="_callback">Callback.</param>
 	public void GiveExperience(string character_id, int amount, onLevelAndExperiance onLevelAndExperiance, onRequestFailed onRequestFailed)
 	{
-		Debug.Log ("Attempting To Give Xp...");
+		Debug.Log ("GSM|Attempting To Give Xp...");
 		new GameSparks.Api.Requests.LogEventRequest ().SetEventKey ("giveXp")
 			.SetEventAttribute ("character_id", character_id)
 			.SetEventAttribute ("amount", amount)
@@ -506,6 +540,9 @@ public class GameSparksManager : MonoBehaviour {
 				onLevelAndExperiance (resp.GetInt ("level").Value, resp.GetInt ("experience").Value);
 			} else {
 				Debug.LogWarning ("GSM| Error \n " + response.Errors.JSON);	
+				if (onRequestFailed != null && response.Errors.GetString ("@giveXp") != null) {
+					onRequestFailed (response.Errors.GetString ("@giveXp"));
+				}
 			}
 		});
 	}
@@ -544,15 +581,15 @@ public class GameSparksManager : MonoBehaviour {
 	#endregion
 
 	#region Player API calls
-
 	/// <summary>
 	/// Sends the reset password email.
 	/// </summary>
 	/// <param name="email">Email.</param>
 	/// <param name="onRequestSucess">On request sucess.</param>
-	public void SendResetPasswordEmail( onRequestSucess onRequestSucess, onRequestFailed onRequestFailed){
+	public void SendResetPasswordEmail(string email, onRequestSucess onRequestSucess, onRequestFailed onRequestFailed){
 		Debug.Log ("Sending Password Reset Email...");
 		new GameSparks.Api.Requests.LogEventRequest ().SetEventKey ("sendResetPasswordEmail")
+			.SetEventAttribute("email", email)
 			.Send ((response) => {
 			if (!response.HasErrors) {
 				Debug.Log ("GSM| Email Sent...");
@@ -566,44 +603,46 @@ public class GameSparksManager : MonoBehaviour {
 		});
 	}
 
+	// THIS REQUEST HAS BEEN DEPRECIATED //
+//	/// <summary>
+//	/// Reset password on sucess callback.
+//	/// </summary>
+//	public delegate void onResetPasswordSucess(string _newPassword);
+//	/// <summary>
+//	/// This function will send a old and new password to the server.
+//	/// It will validate the old password and check the strength of the new password 
+//	/// </summary>
+//	/// <param name="old_password">Old password.</param>
+//	/// <param name="new_password">New password.</param>
+//	/// <param name="_onSucess">A callback for when the request is sucessful. Is nullable</param>
+//	/// <param name="_onFailed">A callback for when the request has failed. Is nullable</param>
+//	public void ResetPassword(string oldPassword, string newPassword, onResetPasswordSucess onSucess, onRequestFailed onRequestFailed)
+//	{
+//		if (oldPassword != string.Empty && newPassword != string.Empty) {
+//			Debug.Log ("Retrieving Player Level & Experiance...");
+//			new GameSparks.Api.Requests.LogEventRequest ().SetEventKey ("resetPassword")
+//				.SetEventAttribute ("old_password", oldPassword)
+//				.SetEventAttribute ("new_password", newPassword)
+//				.Send ((response) => {
+//				if (!response.HasErrors) {
+//					Debug.Log ("GSM| Password Changed...");
+//					if (onSucess != null) {
+//						onSucess (response.ScriptData.GetString ("@resetPassword"));
+//					}
+//				} else {
+//					Debug.LogWarning ("GSM| Error \n " + response.Errors.JSON);	
+//					if (onRequestFailed != null && response.BaseData.GetGSData ("error") != null) {
+//						Debug.LogWarning (response.BaseData.GetGSData ("error").GetString ("@resetPassword"));
+//						onRequestFailed (response.BaseData.GetGSData ("error").GetString ("@resetPassword"));
+//					}
+//				}
+//			});
+//		} else {
+//			Debug.LogWarning ("GSM| old-password or new-password empty...");
+//		}
+//	}
 
-	/// <summary>
-	/// Reset password on sucess callback.
-	/// </summary>
-	public delegate void onResetPasswordSucess(string _newPassword);
-	/// <summary>
-	/// This function will send a old and new password to the server.
-	/// It will validate the old password and check the strength of the new password 
-	/// </summary>
-	/// <param name="old_password">Old password.</param>
-	/// <param name="new_password">New password.</param>
-	/// <param name="_onSucess">A callback for when the request is sucessful. Is nullable</param>
-	/// <param name="_onFailed">A callback for when the request has failed. Is nullable</param>
-	public void ResetPassword(string oldPassword, string newPassword, onResetPasswordSucess onSucess, onRequestFailed onRequestFailed)
-	{
-		if (oldPassword != string.Empty && newPassword != string.Empty) {
-			Debug.Log ("Retrieving Player Level & Experiance...");
-			new GameSparks.Api.Requests.LogEventRequest ().SetEventKey ("resetPassword")
-				.SetEventAttribute ("old_password", oldPassword)
-				.SetEventAttribute ("new_password", newPassword)
-				.Send ((response) => {
-				if (!response.HasErrors) {
-					Debug.Log ("GSM| Password Changed...");
-					if (onSucess != null) {
-						onSucess (response.ScriptData.GetString ("@resetPassword"));
-					}
-				} else {
-					Debug.LogWarning ("GSM| Error \n " + response.Errors.JSON);	
-					if (onRequestFailed != null && response.BaseData.GetGSData ("error") != null) {
-						Debug.LogWarning (response.BaseData.GetGSData ("error").GetString ("@resetPassword"));
-						onRequestFailed (response.BaseData.GetGSData ("error").GetString ("@resetPassword"));
-					}
-				}
-			});
-		} else {
-			Debug.LogWarning ("GSM| old-password or new-password empty...");
-		}
-	}
+
 	/// <summary>
 	/// Registers the parent email.
 	/// </summary>

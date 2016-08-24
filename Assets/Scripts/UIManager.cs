@@ -38,9 +38,6 @@ public class UIManager : MonoBehaviour {
 
 	public GameObject blockout_panel;
 
-	public Button reset_password_bttn;
-	public InputField old_password, new_password;
-
 	public Button parent_email_bttn;
 	public InputField parent_email_input;
 
@@ -73,8 +70,11 @@ public class UIManager : MonoBehaviour {
 	public InputField check_adornment_id, fixed_costume_id;
 	public InputField hair_col, skin_col, shirt, pants, hair, helmet, faceMark; 
 
-	public Button sendResetEmail_bttn;
+	public Button reset_email_bttn;
+	public InputField reset_email_input;
 
+	public Button get_char_names_Bttn;
+	public Text get_char_names_output;
 
 	// Use this for initialization
 	void Start () {
@@ -335,15 +335,15 @@ public class UIManager : MonoBehaviour {
 		#endregion
 
 		#region PLAYER ACCOUNT EXAMPLES
-		reset_password_bttn.onClick.AddListener (() => {
-			Debug.Log ("UIM| Clicked On Reset Password Button...");
-			GameSparksManager.Instance ().ResetPassword (old_password.text, new_password.text, (_newPassword) => {
-				// password set //
-			}, (_errorString) => {
-				
-			});
-		});
-
+//		reset_email_bttn.onClick.AddListener (() => {
+//			Debug.Log ("UIM| Clicked On Reset Password Button...");
+//			GameSparksManager.Instance ().SendResetPasswordEmail(reset_email_input.text, (_newPassword) => {
+//				// password set //
+//			}, (_errorString) => {
+//				
+//			});
+//		});
+//
 		parent_email_bttn.onClick.AddListener (() => {
 			Debug.Log ("UIM| Clicked On Parent Email Button...");
 			GameSparksManager.Instance ().RegisterParentEmail (parent_email_input.text, () => {
@@ -355,9 +355,9 @@ public class UIManager : MonoBehaviour {
 			});
 		});
 
-		sendResetEmail_bttn.onClick.AddListener (() => {
+		reset_email_bttn.onClick.AddListener (() => {
 			Debug.Log ("UIM| Clicked On Send Password Reset Button...");
-			GameSparksManager.Instance ().SendResetPasswordEmail ( () => {
+			GameSparksManager.Instance ().SendResetPasswordEmail (reset_email_input.text, () => {
 				// parent email pending validation	
 				Debug.Log ("UIM| Email Sent...");
 			}, (_errorString) => {
@@ -472,6 +472,16 @@ public class UIManager : MonoBehaviour {
 		#endregion
 
 		#region CHARACTER EXAMPLES
+		get_char_names_Bttn.onClick.AddListener (() => {
+			Debug.Log ("UIM| Clicked On Get Character Names Button...");
+			GameSparksManager.Instance ().GenerateCharacterName ((_newName) => {
+				get_char_names_output.text = _newName;
+			}, (_errorString) => {
+				Debug.LogError ("UIM| Error Generating Character Name...");
+			});
+		});
+
+
 		get_char_bttn.onClick.AddListener (() => {
 			Debug.Log ("UIM| Clicked On Get Character Button...");
 			character_id = get_char_input.text;
