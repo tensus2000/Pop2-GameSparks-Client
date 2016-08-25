@@ -29,7 +29,7 @@ public class UIManager : MonoBehaviour {
 	public Button clearLog_bttn;
 	public InputField auth_password_input, auth_username_txt;
 	public Button auth_bttn;
-	public InputField reg_username_txt, reg_password, reg_displayname;
+	public InputField reg_username_txt, reg_password, reg_displayname, reg_age, reg_gender;
 	public Text server_version_txt;
 	public Button reg_bttn;
 
@@ -38,7 +38,7 @@ public class UIManager : MonoBehaviour {
 
 	public GameObject blockout_panel;
 
-	public Button parent_email_bttn;
+	public Button parent_email_bttn, get_parent_emai_bttn;
 	public InputField parent_email_input;
 
 	public Button send_private_message_bttn;
@@ -152,17 +152,21 @@ public class UIManager : MonoBehaviour {
 		// all gamesparks calls are linked here //
 		auth_bttn.onClick.AddListener (() => {
 			Debug.Log ("UIM| Clicked on authentication button");
-			GameSparksManager.Instance ().Authenticate (auth_username_txt.text, auth_password_input.text, (_characterIds, _lastCharacter) => {
-				Debug.Log("UIM| Authentication Sucessful...");
+			GameSparksManager.Instance ().Authenticate (auth_username_txt.text, auth_password_input.text, (_authResponse) => {
+				Debug.Log("UIM| Authentication Successful...");
 				// here is an example of how we can use the event callbacks. //
-				// in this case, i will remove the menu-option blocker if the player has authenticated sucessfully //
+				// in this case, i will remove the menu-option blocker if the player has authenticated successfully //
 
 				// the following is an example of how to get the last-character and character list back //
-				string[] characterIds = _characterIds;
-				string lastCharacter = _lastCharacter;
+				string[] characterIds = _authResponse.characterIDs;
+				string lastCharacter = _authResponse.lastCharacterID;
 
 				Debug.Log ("UIM| Character List: " + characterIds.Length);
 				Debug.Log ("UIM| Last Character: " + lastCharacter);
+
+				// now we can check if the player has a parent email registered or not //
+				Debug.LogWarning("Player Has Parent Email: "+_authResponse.hasParentEmail);
+				Debug.LogWarning("Player Was Pop1 User: "+_authResponse.isPop1Player);
 
 				server_version_txt.text = "Server Version: Requesting....";
 				GameSparksManager.Instance ().GetServerVersion ((_version) => {
@@ -173,20 +177,19 @@ public class UIManager : MonoBehaviour {
 
 					}
 				});
-			}, (_errorString) => {
+			}, (_error) => {
 				// error-string can be checked for the following errors //
-				if (_errorString == "details-unrecognised") {
-					// for when the user-name or password is incorrect //
-					Debug.LogWarning("UIM| Player Details Incorrect..");
-				}
+				Debug.LogWarning("UIM| "+_error.ToString());
+
+
 			});
 		});
 
 		reg_bttn.onClick.AddListener (() => {
 			Debug.Log ("UIM| Clicked on registration button");
-			GameSparksManager.Instance ().Register (reg_username_txt.text, reg_displayname.text, reg_password.text, () => {
+			GameSparksManager.Instance ().Register (reg_username_txt.text, reg_displayname.text, reg_password.text, int.Parse(reg_age.text), reg_gender.text,  () => {
 				// here is an example of how we can use the event callbacks. //
-				// in this case, i will remove the menu-option blocker if the player has authenticated sucessfully //
+				// in this case, i will remove the menu-option blocker if the player has authenticated successfully //
 				server_version_txt.text = "Server Version: Requesting....";
 				GameSparksManager.Instance ().GetServerVersion ((_version) => {
 					server_version_txt.text = "Server Version: " + _version;
@@ -300,7 +303,7 @@ public class UIManager : MonoBehaviour {
 		enterScene_bttn.onClick.AddListener (() => {
 			Debug.Log ("UIM| Clicked on Enter Scene Button");
 			GameSparksManager.Instance ().EnterScene (character_id, int.Parse (scene_island_id.text), (island_id, scene_id) => {
-				// on entered scene sucessfully //
+				// on entered scene successfully //
 				Debug.Log ("Scene ID: " + scene_id + ", Island ID: " + island_id);
 			}, (_errorString) => {
 				if (_errorString == "invalid-scene-id") {
@@ -343,6 +346,19 @@ public class UIManager : MonoBehaviour {
 //				
 //			});
 //		});
+		get_parent_emai_bttn.onClick.AddListener (() => {
+			Debug.Log ("UIM| Clicked On Get Parent Email Button...");
+			GameSparksManager.Instance ().GetParentEmailStatus ((_parentEmailList) => {
+				for(var i =0; i < _parentEmailList.Length; i++){
+					_parentEmailList[i].Print();
+				}
+				// parent email pending validation	
+			}, (_errorString) => {
+				if (_errorString == "no-email-history") {
+					Debug.LogError ("UIM| User Has No Email History");
+				}
+			});
+		});
 //
 		parent_email_bttn.onClick.AddListener (() => {
 			Debug.Log ("UIM| Clicked On Parent Email Button...");
@@ -357,7 +373,7 @@ public class UIManager : MonoBehaviour {
 
 		reset_email_bttn.onClick.AddListener (() => {
 			Debug.Log ("UIM| Clicked On Send Password Reset Button...");
-			GameSparksManager.Instance ().SendResetPasswordEmail (reset_email_input.text, () => {
+			GameSparksManager.Instance ().SendResetPasswordEmail (() => {
 				// parent email pending validation	
 				Debug.Log ("UIM| Email Sent...");
 			}, (_errorString) => {
@@ -447,7 +463,7 @@ public class UIManager : MonoBehaviour {
 		leave_island_bttn.onClick.AddListener (() => {
 			Debug.Log ("UIM| Clicked On Leave Island Button...");
 			GameSparksManager.Instance ().LeaveIsland (character_id, int.Parse (player_island_id.text), () => {
-				// visit to island sucessful //
+				// visit to island successful //
 			}, (_errorString) => {
 				if (_errorString == "invalid-island-id") {
 					Debug.LogError ("UIM| Invalid Scene ID");
@@ -502,7 +518,7 @@ public class UIManager : MonoBehaviour {
 				character_id = _newCharacterID;
 
 				// when we create the character we can call the get-level and XP request again to get the right fields //
-				GameSparksManager.Instance ().GetLevelAndExperiance (character_id, (_level, _xp) => {
+				GameSparksManager.Instance ().GetLevelAndExperience (character_id, (_level, _xp) => {
 					xpText.text = _xp.ToString();
 					levelText.text = _level.ToString();
 					Debug.Log("XP:"+_xp+", Level:"+_level);
@@ -663,7 +679,7 @@ public class UIManager : MonoBehaviour {
 
 		if (_panel.gameObject.name == "character_panel") {
 			Debug.Log ("UIM| Loading Player Details...");
-			GameSparksManager.Instance ().GetLevelAndExperiance (character_id, (_level, _xp) => {
+			GameSparksManager.Instance ().GetLevelAndExperience (character_id, (_level, _xp) => {
 				xpText.text = _xp.ToString();
 				levelText.text = _level.ToString();
 				Debug.Log("XP:"+_xp+", Level:"+_level);

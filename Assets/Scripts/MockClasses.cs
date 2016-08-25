@@ -1,6 +1,60 @@
 ﻿using UnityEngine;
 using System.Collections;
 using GameSparks.Core;
+using System;
+
+
+
+public enum GameSparksError{
+
+	invalid_username,
+	invalid_password,
+	request_failed,
+	request_timeout,
+}
+
+
+public class AuthenticationResponse{
+
+	public string[] characterIDs;
+	public string lastCharacterID;
+	public bool hasParentEmail, isPop1Player;
+
+	public AuthenticationResponse(string[] characterIDs, string lastCharacterID, bool hasParentEmail, bool isPop1Player){
+		this.characterIDs = characterIDs;
+		this.lastCharacterID = lastCharacterID;
+		this.hasParentEmail = hasParentEmail;
+		this.isPop1Player = isPop1Player;
+
+	}
+
+	public void Print(){
+		Debug.Log("Last Char:"+lastCharacterID+", Characters:"+characterIDs.Length+", hasParentEmail:"+hasParentEmail+", is Pop1 Player:"+isPop1Player);
+	}
+}
+
+
+public class ParentEmailStatus{
+
+	public ParentEmailStatus(string email, DateTime dateAdded, string status, DateTime verifiedDate){
+		this.email = email;
+		this.dateAdded = dateAdded;
+		this.status = status;
+		this.verifiedDate = verifiedDate;
+	}
+	public ParentEmailStatus(string email, DateTime dateAdded, string status){
+		this.email = email;
+		this.dateAdded = dateAdded;
+		this.status = status;
+	}
+	string email,  status;
+	DateTime dateAdded, verifiedDate;
+
+	public void Print()
+	{
+		Debug.Log("Email:"+ email+", Status:"+status+", Verified:"+verifiedDate+", Added:"+dateAdded);
+	}
+}
 
 
 public class Adornment
