@@ -5,22 +5,16 @@ using System;
 
 
 
-public enum GameSparksError{
-
-	invalid_username,
-	invalid_password,
-	request_failed,
-	request_timeout,
-}
 
 
-public class AuthenticationResponse{
+
+public class AuthResponse{
 
 	public string[] characterIDs;
 	public string lastCharacterID;
 	public bool hasParentEmail, isPop1Player;
 
-	public AuthenticationResponse(string[] characterIDs, string lastCharacterID, bool hasParentEmail, bool isPop1Player){
+	public AuthResponse(string[] characterIDs, string lastCharacterID, bool hasParentEmail, bool isPop1Player){
 		this.characterIDs = characterIDs;
 		this.lastCharacterID = lastCharacterID;
 		this.hasParentEmail = hasParentEmail;

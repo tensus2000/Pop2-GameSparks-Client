@@ -2,9 +2,10 @@
   <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" PreferredExecutionTarget="Unity.Instance.Unity Editor" />
   <MonoDevelop.Ide.Workbench ActiveDocument="Assets/Scripts/GameSparksManager.cs">
     <Files>
-      <File FileName="Assets/Scripts/GameSparksManager.cs" Line="133" Column="52" />
-      <File FileName="Assets/Scripts/MockClasses.cs" Line="10" Column="2" />
-      <File FileName="Assets/Scripts/UIManager.cs" Line="163" Column="5" />
+      <File FileName="Assets/Scripts/GameSparksManager.cs" Line="1873" Column="2" />
+      <File FileName="Assets/Scripts/UIManager.cs" Line="505" Column="19" />
+      <File FileName="Assets/Scripts/MockClasses.cs" Line="8" Column="1" />
+      <File FileName="Assets/GameSparks/Platforms/PlatformBase.cs" Line="150" Column="1" />
     </Files>
   </MonoDevelop.Ide.Workbench>
   <MonoDevelop.Ide.DebuggingService.Breakpoints>

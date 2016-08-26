@@ -172,35 +172,30 @@ public class UIManager : MonoBehaviour {
 				GameSparksManager.Instance ().GetServerVersion ((_version) => {
 					server_version_txt.text = "Server Version: " + _version;
 					blockout_panel.SetActive (false);
-				}, (_errorString) => {
-					if (_errorString == "db-error") {
-
-					}
+				}, (_error) => {
+					Debug.LogError("UIM| "+_error.ToString());
 				});
 			}, (_error) => {
-				// error-string can be checked for the following errors //
-				Debug.LogWarning("UIM| "+_error.ToString());
-
-
+				Debug.LogError("UIM| "+_error.ToString());
 			});
 		});
 
 		reg_bttn.onClick.AddListener (() => {
 			Debug.Log ("UIM| Clicked on registration button");
-			GameSparksManager.Instance ().Register (reg_username_txt.text, reg_displayname.text, reg_password.text, int.Parse(reg_age.text), reg_gender.text,  () => {
+			GameSparksManager.Instance ().Register (reg_username_txt.text, reg_displayname.text, reg_password.text, int.Parse(reg_age.text), reg_gender.text,  (_playerID) => {
 				// here is an example of how we can use the event callbacks. //
 				// in this case, i will remove the menu-option blocker if the player has authenticated successfully //
 				server_version_txt.text = "Server Version: Requesting....";
 				GameSparksManager.Instance ().GetServerVersion ((_version) => {
 					server_version_txt.text = "Server Version: " + _version;
 					blockout_panel.SetActive (false);
-				}, (_errorString) => {
-					if (_errorString == "db-error") {
-						Debug.LogError ("UIM| Data-base Error");
-					}
+				}, (_error)=>{
+					Debug.LogError("UIM| "+_error.ToString());
 				});
-			}, (_suggestedName) => {
+				}, (_error, _suggestedName) => {
+				Debug.LogError ("UIM| Error: " + _error.ToString());
 				Debug.LogWarning ("UIM| Suggested Username: " + _suggestedName);
+
 			});
 		});
 		#endregion
@@ -213,11 +208,8 @@ public class UIManager : MonoBehaviour {
 				foreach (Item item in _items) {
 					item.Print ();
 				}
-			}, (_errorString) => {
-				if (_errorString == "no-inventory") {
-					// the player has no inventory
-					Debug.LogError ("UIM| Player Has No Inventory");
-				}
+			}, (_error) => {
+				Debug.LogError("UIM| "+_error.ToString());
 			});
 		});
 
@@ -227,8 +219,8 @@ public class UIManager : MonoBehaviour {
 				Debug.Log ("Item ID: " + _item_id);
 				// and request the inventory again to make sure it was picked up //
 				GameSparksManager.Instance ().GetInventory (character_id, null, null);
-			}, (_errorString) => {
-
+			}, (_error) => {
+				Debug.LogError("UIM| "+_error.ToString());
 			});
 		});
 
@@ -238,16 +230,8 @@ public class UIManager : MonoBehaviour {
 				Debug.Log ("Item ID: " + _item_id);
 				// and request the inventory again to make sure it was picked up //
 				GameSparksManager.Instance ().GetInventory (character_id, null, null);
-			}, (_errorString) => {
-				if (_errorString == "invalid-item-id") {
-					Debug.LogError ("UIM| Invalid Item ID");
-				} else if (_errorString == "invalid-character-id") {
-					Debug.LogError ("UIM| Invalid Character ID");
-				} else if (_errorString == "min-level-not-met") {
-					Debug.LogError ("UIM| Min Level Not Met");
-				} else if (_errorString == "max-level-exceeded") {
-					Debug.LogError ("UIM| Max Level Exceeded");
-				}
+			}, (_error) => {
+				Debug.LogError("UIM| "+_error.ToString());
 			});
 		});
 			
@@ -257,12 +241,8 @@ public class UIManager : MonoBehaviour {
 				Debug.Log ("UIM| Picked Up Item:" + _itemID);
 				// and request the inventory again to make sure it was picked up //
 				GameSparksManager.Instance ().GetInventory (character_id, null, null);
-			}, (_errorString) => {
-				if (_errorString == "item-not-found-in-scene") {
-					Debug.LogError ("UIM| Item Not Found In Scene");
-				} else if (_errorString == "invalid-scene-id") {
-					Debug.LogError ("UIM| Invalid Scene ID");
-				}
+			}, (_error) => {
+				Debug.LogError("UIM| "+_error.ToString());
 			});
 		});
 
@@ -272,12 +252,9 @@ public class UIManager : MonoBehaviour {
 				Debug.Log ("UIM| Picked Up Item:" + _itemID);
 				// and request the inventory again to make sure it was picked up //
 				GameSparksManager.Instance ().GetInventory (character_id, null, null);
-			}, (_errorString) => {
-				if (_errorString == "item-not-found-in-scene") {
-					Debug.LogError ("UIM| Item Not Found In Scene");
-				} else if (_errorString == "invalid-scene-id") {
-					Debug.LogError ("UIM| Invalid Scene ID");
-				}
+			}, (_error) => {
+				Debug.LogError("UIM| "+_error.ToString());
+
 			});
 		});
 		#endregion
@@ -289,14 +266,9 @@ public class UIManager : MonoBehaviour {
 				// callback will have the scene-state which was returned //
 				// you can use it from here //
 				_sceneState.Print ();
-			}, (_errorString) => {
-				if (_errorString == "no-player-scene-record") {
-					// when the player does not yet have any scene information
-					Debug.LogError ("UIM| Player Has No Scene Record");
-				} else if (_errorString == "invalid-scene-id") {
-					// if the scene-id given was invalid, or the player had no information for that specific scene
-					Debug.LogError ("UIM| Invalid Scene ID");
-				}
+			}, (_error) => {
+				Debug.LogError("UIM| "+_error.ToString());
+
 			});
 		});
 
@@ -305,13 +277,9 @@ public class UIManager : MonoBehaviour {
 			GameSparksManager.Instance ().EnterScene (character_id, int.Parse (scene_island_id.text), (island_id, scene_id) => {
 				// on entered scene successfully //
 				Debug.Log ("Scene ID: " + scene_id + ", Island ID: " + island_id);
-			}, (_errorString) => {
-				if (_errorString == "invalid-scene-id") {
-					Debug.LogError ("UIM| Invalid Scene ID");
-				} else if (_errorString == "\"dberror\"") {
-					// if the request failed to update the collection
-					Debug.LogError ("UIM| Data-base Error");
-				}
+			}, (_error) => {
+				Debug.LogError("UIM| "+_error.ToString());
+
 			});
 		});
 
@@ -325,15 +293,18 @@ public class UIManager : MonoBehaviour {
 		#region CHARACTER XP EXAMPLES
 		grantXp_bttn.onClick.AddListener (() => {
 			Debug.Log ("UIM| Clicked Grant XP Buttn...");
-			GameSparksManager.Instance ().GiveExperience (character_id, int.Parse (grantXp_field.text), (_level, _xp) => {
-				Debug.Log ("XP:" + _xp + ", Level:" + _level);
-				xpText.text = _xp.ToString ();
-				levelText.text = _level.ToString ();
-			}, (_errorString) => {
-				if (_errorString == "no-level-definition") {	
-					Debug.LogError ("UIM| No Level Definition");
-				}
-			});
+			int xp;
+			if(int.TryParse (grantXp_field.text, out xp) == true){
+				GameSparksManager.Instance ().GiveExperience (character_id, xp, (_level, _xp) => {
+					Debug.Log ("XP:" + _xp + ", Level:" + _level);
+					xpText.text = _xp.ToString ();
+					levelText.text = _level.ToString ();
+				}, (_error) => {
+					Debug.LogWarning("UIM| "+_error.ToString());
+				});
+			}else{
+				Debug.LogError("UIM| Please Enter A Valid Number...");
+			}
 		});
 		#endregion
 
@@ -353,10 +324,8 @@ public class UIManager : MonoBehaviour {
 					_parentEmailList[i].Print();
 				}
 				// parent email pending validation	
-			}, (_errorString) => {
-				if (_errorString == "no-email-history") {
-					Debug.LogError ("UIM| User Has No Email History");
-				}
+			}, (_error) => {
+				Debug.LogError("UIM| "+_error.ToString());
 			});
 		});
 //
@@ -364,10 +333,8 @@ public class UIManager : MonoBehaviour {
 			Debug.Log ("UIM| Clicked On Parent Email Button...");
 			GameSparksManager.Instance ().RegisterParentEmail (parent_email_input.text, () => {
 				// parent email pending validation	
-			}, (_errorString) => {
-				if (_errorString == "invalid-email") {
-					Debug.LogError ("UIM| Email Invalid");
-				}
+			}, (_error) => {
+				Debug.LogError("UIM| "+_error.ToString());
 			});
 		});
 
@@ -376,10 +343,8 @@ public class UIManager : MonoBehaviour {
 			GameSparksManager.Instance ().SendResetPasswordEmail (() => {
 				// parent email pending validation	
 				Debug.Log ("UIM| Email Sent...");
-			}, (_errorString) => {
-				if (_errorString == "no-email-registered") {
-					Debug.LogError ("UIM| No Email Registered...");
-				}
+			}, (_error) => {
+				Debug.LogError("UIM| "+_error.ToString());
 			});
 		});
 		#endregion
@@ -390,10 +355,8 @@ public class UIManager : MonoBehaviour {
 			// this is an example of a private message sent without a payload //
 			GameSparksManager.Instance ().SendPrivateMessage (message_header.text, message_body.text, message_recipient.text, character_id, () => {
 				// on message sent
-			}, (_errorString) => {
-				if (_errorString == "invalid-character-id") {
-					Debug.LogError ("UIM| Invalid Character ID");
-				}
+			}, (_error) => {
+				Debug.LogError("UIM| "+_error.ToString());
 			});
 			// below is an example of how to send private messages with payload data //
 			// the payload data can be anything the client wants to interperate as an action or trigger (or anything really) //
@@ -423,10 +386,8 @@ public class UIManager : MonoBehaviour {
 			Debug.Log ("UIM| Clicked On Delete Message Button...");
 			GameSparksManager.Instance ().DeleteMessage (message_id.text, () => {
 				// message was deleted
-			}, (_errorString) => {
-				if (_errorString == "not-deleted") {
-					Debug.LogWarning ("UIM| Message Not Deleted");
-				}
+			}, (_error) => {
+				Debug.LogError("UIM| "+_error.ToString());
 			});
 		});
 
@@ -443,8 +404,8 @@ public class UIManager : MonoBehaviour {
 				foreach (Island island in _islands) {
 					island.Print ();
 				}
-			}, (_errorString) => {
-				
+			}, (_error) => {
+				Debug.LogError("UIM| "+_error.ToString());
 			});
 		});
 
@@ -453,10 +414,8 @@ public class UIManager : MonoBehaviour {
 			GameSparksManager.Instance ().VisitIsland (character_id, int.Parse (player_island_id.text), (_islandID) => {
 				Debug.Log ("Island ID:" + _islandID);
 
-			}, (_errorString) => { // if there was an error, there will be "error":{"@visitIsland":"invalid-island-id"}
-				if (_errorString == "invalid-island-id") {
-					Debug.LogError ("UIM| Invalid Island ID");
-				}
+			}, (_error) => { // if there was an error, there will be "error":{"@visitIsland":"invalid-island-id"}
+				Debug.LogError("UIM| "+_error.ToString());
 			});
 		});
 
@@ -464,12 +423,8 @@ public class UIManager : MonoBehaviour {
 			Debug.Log ("UIM| Clicked On Leave Island Button...");
 			GameSparksManager.Instance ().LeaveIsland (character_id, int.Parse (player_island_id.text), () => {
 				// visit to island successful //
-			}, (_errorString) => {
-				if (_errorString == "invalid-island-id") {
-					Debug.LogError ("UIM| Invalid Scene ID");
-				} else if (_errorString == "dberror") {
-
-				}
+			}, (_error) => {
+				Debug.LogError("UIM| "+_error.ToString());
 			});
 		});
 
@@ -477,12 +432,8 @@ public class UIManager : MonoBehaviour {
 			Debug.Log ("UIM| Clicked On Complete Island Button...");
 			GameSparksManager.Instance ().CompleteIsland (character_id, int.Parse (player_island_id.text), () => {
 				// player completed island
-			}, (_errorString) => {
-				if (_errorString == "invalid-island-id") {
-					Debug.LogError ("UIM| Invalid Island ID");
-				} else if (_errorString == "dberror") {
-					Debug.LogError ("UIM| Data-base Error");
-				}
+			}, (_error) => {
+				Debug.LogError("UIM| "+_error.ToString());
 			});
 		});
 		#endregion
@@ -492,6 +443,7 @@ public class UIManager : MonoBehaviour {
 			Debug.Log ("UIM| Clicked On Get Character Names Button...");
 			GameSparksManager.Instance ().GenerateCharacterName ((_newName) => {
 				get_char_names_output.text = _newName;
+				Debug.LogWarning("UIM| New Character Name: "+_newName);
 			}, (_errorString) => {
 				Debug.LogError ("UIM| Error Generating Character Name...");
 			});
@@ -503,10 +455,8 @@ public class UIManager : MonoBehaviour {
 			character_id = get_char_input.text;
 			GameSparksManager.Instance ().GetCharacter (get_char_input.text, (_character) => {
 				_character.Print ();
-			}, (_errorString) => {
-				if (_errorString == "invalid-char-id") {
-					Debug.LogError ("UIM| Invalid Character ID");
-				}
+			}, (_error) => {
+				Debug.LogError("UIM| "+_error.ToString());
 			});
 		});
 
@@ -522,18 +472,12 @@ public class UIManager : MonoBehaviour {
 					xpText.text = _xp.ToString();
 					levelText.text = _level.ToString();
 					Debug.Log("XP:"+_xp+", Level:"+_level);
-				}, (_errorString)=>{
-					if(_errorString == "invalid-character-id"){
-						Debug.LogError("UIM| Invalid CHARACTER ID");
-					}
+				}, (_error)=>{
+					Debug.LogError("UIM| "+_error.ToString());
 				});
 
-			}, (_errorString) => {
-				if (_errorString == "name-already-taken") {
-					Debug.LogError ("UIM| Character Name Taken");
-				} else if (_errorString == "invalid-gender") {
-					Debug.LogError ("UIM| Invalid Gender");
-				}
+			}, (_error) => {
+				Debug.LogError("UIM| "+_error.ToString());
 			});
 		});
 		#endregion 
@@ -543,12 +487,8 @@ public class UIManager : MonoBehaviour {
 			Debug.Log ("UIM| Clicked On Set Fixed Costume Button...");
 			GameSparksManager.Instance ().SetFixedCostume (character_id, int.Parse (fixed_costume_id.text), (_costume_id) => {
 				Debug.Log ("UIM| Costume ID:" + _costume_id);
-			}, (_errorString) => {
-				if (_errorString == "invalid-character-id") {
-					Debug.LogError ("UIM| Invalid Character ID");
-				} else if (_errorString == "invalid-outfit-id") {
-					Debug.LogError ("UIM| Invalid Outfit ID");
-				}
+			}, (_error) => {
+				Debug.LogError("UIM| "+_error.ToString());
 			});
 		});
 
@@ -558,17 +498,11 @@ public class UIManager : MonoBehaviour {
 				if (_isAvailable) {
 					Debug.Log ("UIM| Adornment Is Available...");
 				} else {
-					Debug.Log ("UIM| Adornment Is Un Available...");
+					Debug.Log ("UIM| Adornment Is UnAvailable...");
 				}
 
-			}, (_errorString) => {
-				if (_errorString == "invalid-adornment-id") {
-					Debug.LogError ("UIM| Invalid Adornment ID");
-				} else if (_errorString == "min-level-not-met") {
-					Debug.LogError ("UIM| Min Level Not Met");
-				} else if (_errorString == "max-level-exceeded") {
-					Debug.LogError ("UIM| Mex Level Exceeded");
-				}
+			}, (_error) => {
+				Debug.LogError("UIM| "+_error.ToString());
 			});
 		});
 
@@ -590,10 +524,8 @@ public class UIManager : MonoBehaviour {
 			Debug.Log ("UIM| Clicked On Get Adornment Button...");
 			GameSparksManager.Instance ().GetAdornment (int.Parse (check_adornment_id.text), (_adornment) => {
 				_adornment.Print ();
-			}, (_errorString) => {
-				if (_errorString == "invalid-character-id") {
-					Debug.LogError ("UIM| Invalid CHARACTER ID");
-				}
+			}, (_error) => {
+				Debug.LogError("UIM| "+_error.ToString());
 			});
 
 		});
@@ -601,10 +533,8 @@ public class UIManager : MonoBehaviour {
 			Debug.Log ("UIM| Clicked On Get Outfit Button...");
 			GameSparksManager.Instance ().GetOutfit (character_id, (_outfit) => {
 				_outfit.Print ();
-			}, (_errorString) => {
-				if (_errorString == "invalid-character-id") {
-					Debug.LogError ("UIM| Invalid CHARACTER ID");
-				}
+			}, (_error) => {
+				Debug.LogError("UIM| "+_error.ToString());
 			});
 		});
 		set_outfit_bttn.onClick.AddListener (() => {
@@ -613,12 +543,8 @@ public class UIManager : MonoBehaviour {
 			GameSparksManager.Instance ().SetOutfit (character_id, 
 				new Outfit (hair_col.text, skin_col.text, shirt.text, pants.text, hair.text, faceMark.text, helmet.text), () => {
 				Debug.Log ("UIM| Set OutFit...");
-			}, (_errorString) => {
-				if (_errorString == "dberror") {
-					Debug.LogError ("UIM| Data-base Erroe");
-				} else if (_errorString == "invalid-character-id") {
-					Debug.LogError ("UIM| Invalid CHARACTER ID");
-				}
+			}, (_error) => {
+					Debug.LogError("UIM| "+_error.ToString());
 			});
 		});
 		#endregion
@@ -683,10 +609,8 @@ public class UIManager : MonoBehaviour {
 				xpText.text = _xp.ToString();
 				levelText.text = _level.ToString();
 				Debug.Log("XP:"+_xp+", Level:"+_level);
-			}, (_errorString)=>{
-				if(_errorString == "invalid-character-id"){
-					Debug.LogError("UIM| Invalid CHARACTER ID");
-				}
+			}, (_error)=>{
+				Debug.LogWarning("UIM| "+_error.ToString());
 			});
 		}
 
