@@ -75,6 +75,7 @@ public class UIManager : MonoBehaviour {
 
 	public Button get_char_names_Bttn;
 	public Text get_char_names_output;
+	public InputField names_count;
 
 	// Use this for initialization
 	void Start () {
@@ -441,9 +442,11 @@ public class UIManager : MonoBehaviour {
 		#region CHARACTER EXAMPLES
 		get_char_names_Bttn.onClick.AddListener (() => {
 			Debug.Log ("UIM| Clicked On Get Character Names Button...");
-			GameSparksManager.Instance ().GenerateCharacterName ((_newName) => {
-				get_char_names_output.text = _newName;
-				Debug.LogWarning("UIM| New Character Name: "+_newName);
+			GameSparksManager.Instance ().GenerateCharacterNames (int.Parse (names_count.text), (_newNames) => {
+				get_char_names_output.text = _newNames[0];
+				foreach(string name in _newNames){
+					Debug.LogWarning("UIM New Name: "+name);
+				}
 			}, (_errorString) => {
 				Debug.LogError ("UIM| Error Generating Character Name...");
 			});

@@ -607,15 +607,15 @@ public class GameSparksManager : MonoBehaviour
     /// <returns>Generates a new character name</returns>
     /// <param name="onCharacterName">On character name. receives the character name</param>
     /// <param name="onRequestFailed">On request failed. callback, GameSparksError, request failed</param>
-    private IEnumerator generateNamesRequest(onCharacterName onCharacterName, onRequestFailed onRequestFailed)
+    private IEnumerator generateNamesRequest(int count, onCharacterName onCharacterName, onRequestFailed onRequestFailed)
     {
-        WWW genNamesRequest = new WWW("https://preview.gamesparks.net/callback/E300018ZDdAx/generateName/YR5w9F53GYeMsP8LTBqijeeAsPM66v7J");
+        WWW genNamesRequest = new WWW("https://preview.gamesparks.net/callback/E300018ZDdAx/generateName/YR5w9F53GYeMsP8LTBqijeeAsPM66v7J?count="+count);
         yield return genNamesRequest;
         // once we have the response we can parse it to an object from the JSON using gsdata //
         GSRequestData respData = new GSRequestData(genNamesRequest.text);
-		if (respData.GetString("name") != null && onCharacterName != null)
+		if (respData.GetStringList("names") != null && onCharacterName != null)
         {
-            onCharacterName(respData.GetString("name"));
+			onCharacterName(respData.GetStringList("names").ToArray());
         }
 		else if (respData.GetString("error") != null && onRequestFailed != null)
         {
@@ -626,18 +626,22 @@ public class GameSparksManager : MonoBehaviour
     /// <summary>
     /// Receives the name of the character
     /// </summary>
-	public delegate void onCharacterName(string name);
+	public delegate void onCharacterName(string[] names);
 
     /// <summary>
     /// Generates the name of the character.
     /// Calls a coroutine to make an HTTP request
     /// </summary>
+	/// <param name="count">number of names to retrieve</param>
     /// <param name="onCharacterName">On character name. returns the character name</param>
     /// <param name="onRequestFailed">On request failed. callback, GameSparkError, request_failed</param>
-    public void GenerateCharacterName(onCharacterName onCharacterName, onRequestFailed onRequestFailed)
+    public void GenerateCharacterNames(int count, onCharacterName onCharacterName, onRequestFailed onRequestFailed)
     {
-        Debug.Log("GSM| Fetching New Character Name...");
-        StartCoroutine(generateNamesRequest(onCharacterName, onRequestFailed));
+        Debug.Log("GSM| Fetching New Character Names  ["+count+"]...");
+		if (count <= 0) {
+			count = 1;
+		}
+        StartCoroutine(generateNamesRequest(count, onCharacterName, onRequestFailed));
     }
 
     /// <summary>
