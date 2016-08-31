@@ -1,4 +1,3 @@
-// -*- tab-width: 4; -*-
 ﻿using UnityEngine;
 using System.Collections;
 using UnityEngine.SceneManagement;
@@ -49,7 +48,7 @@ public class GameSparksManager : MonoBehaviour
     {
         if (instance == null)
         { 
-			// when the first GSM is activated, it should be null, so we create the reference
+            // when the first GSM is activated, it should be null, so we create the reference
             Debug.Log("GSM | Singleton Initialized...");
             instance = this;
             DontDestroyOnLoad(this.gameObject); // gamesparks manager persists throughout game
@@ -73,49 +72,68 @@ public class GameSparksManager : MonoBehaviour
         // i.e. we cannot tell the SDK the socket is closed if it is closed (since there is no connection) //
         GS.GameSparksAvailable += ((bool _isAvail) =>
         {
-            OnGSAvailable(_isAvail);
+            if (OnGSAvailable != null)
+            {
+                OnGSAvailable(_isAvail);
+            }
         });
         // These callbacks will send the message-received events back to the class they are being called from
         GameSparks.Api.Messages.ScriptMessage_privateUserMessage.Listener += (message) =>
         {
-            OnNewPrivateMessage(new InboxMessage(message.MessageId, message.Data.GetString("sender-name"), message.Data.GetString("from"), message.Data.GetString("header"), message.Data.GetString("body"), message.Data.GetGSData("payload")));
+            if (OnNewPrivateMessage != null)
+            {
+                OnNewPrivateMessage(new InboxMessage(message.MessageId, message.Data.GetString("sender-name"), message.Data.GetString("from"), message.Data.GetString("header"), message.Data.GetString("body"), message.Data.GetGSData("payload")));
+            }
         };
         GameSparks.Api.Messages.ScriptMessage_globalUserMessage.Listener += (message) =>
         {
-            OnNewGlobalMessage(new InboxMessage(message.MessageId, "Poptropica", "Poptropica", message.Data.GetString("header"), message.Data.GetString("body"), message.Data.GetGSData("payload")));
+            if (OnNewGlobalMessage != null)
+            {
+                OnNewGlobalMessage(new InboxMessage(message.MessageId, "Poptropica", "Poptropica", message.Data.GetString("header"), message.Data.GetString("body"), message.Data.GetGSData("payload")));
+            }
         };
         GameSparks.Api.Messages.SessionTerminatedMessage.Listener += (message) =>
         {
-            OnSessionTerminated();
+            if (OnSessionTerminated != null)
+            {
+                        
+                OnSessionTerminated();
+            }
         };
     }
 
     #region Callbacks For Socket-Messages
-	/// <summary>
-	/// Occurs when on the GameSparks websocket is opened or closed
-	/// </summary>
+
+    /// <summary>
+    /// Occurs when on the GameSparks websocket is opened or closed
+    /// </summary>
     public event GSAvailable OnGSAvailable;
-	/// <summary>
-	/// called when GameSparks SDK has been initilized, i.e. the websocket is authenticated
-	/// </summary>
+
+    /// <summary>
+    /// called when GameSparks SDK has been initilized, i.e. the websocket is authenticated
+    /// </summary>
     public delegate void GSAvailable(bool _isAvailable);
-	/// <summary>
-	/// Occurs when on a new private message is pushed to the websocket
-	/// </summary>
+
+    /// <summary>
+    /// Occurs when on a new private message is pushed to the websocket
+    /// </summary>
     public event MessageDelegate OnNewPrivateMessage, OnNewGlobalMessage;
-	/// <summary>
-	/// Message delegate. Handles messages from the server
-	/// </summary>
+
+    /// <summary>
+    /// Message delegate. Handles messages from the server
+    /// </summary>
     public delegate void MessageDelegate(InboxMessage message);
-	/// <summary>
-	/// Message event. Occurs when a message hits the client
-	/// </summary>
+
+    /// <summary>
+    /// Message event. Occurs when a message hits the client
+    /// </summary>
     public delegate void MessageEvent();
-	/// <summary>
-	/// Occurs when the session is terminated.
-	/// The occcurs wither by websocket inactivity (30mins) or the player is disconnected, as they 
-	/// connected with the same credientals on another device.
-	/// </summary>
+
+    /// <summary>
+    /// Occurs when the session is terminated.
+    /// The occcurs wither by websocket inactivity (30mins) or the player is disconnected, as they 
+    /// connected with the same credientals on another device.
+    /// </summary>
     public event MessageEvent OnSessionTerminated;
 
     #endregion
@@ -124,40 +142,45 @@ public class GameSparksManager : MonoBehaviour
     /// This delegate allows a callback to be used in any request where you want an action to take place
     /// once the request is completed, but there is no specific information you need from the response.
     /// </summary>
-	public delegate void onRequestSuccess();
+    public delegate void onRequestSuccess();
 
     #region AUTHENTICATION CALLS
-	/// <summary>
-	/// receives AuthenticationResponse,  an object containing the user's player-data.
-	/// list of all player's character Ids, 
-	/// The Id of the last character the player used,  
-	/// bool if player has parent email registered, 
-	/// bool if player is a user migrating from pop1
-	/// </summary>
-	public delegate void onAuthSuccess(AuthResponse authResponse);
-	/// <summary>
-	/// receives, GameSparksError, enum, an enum corresponding to a specific GameSparks error.
-	/// invalid_username, invalid_password, request_failed, request_timeout
-	/// </summary>
-	public delegate void onRequestFailed(GameSparksError error);
+
+    /// <summary>
+    /// receives AuthenticationResponse,  an object containing the user's player-data.
+    /// list of all player's character Ids, 
+    /// The Id of the last character the player used,  
+    /// bool if player has parent email registered, 
+    /// bool if player is a user migrating from pop1
+    /// </summary>
+    public delegate void onAuthSuccess(AuthResponse authResponse);
+
+
+    public delegate void onAuthFailed(GameSparksError error, string isPop1Player);
+
+    /// <summary>
+    /// receives, GameSparksError, enum, an enum corresponding to a specific GameSparks error.
+    /// invalid_username, invalid_password, request_failed, request_timeout
+    /// </summary>
+    public delegate void onRequestFailed(GameSparksError error);
 
     /// <summary>
     /// Authenticate the user with the given username and password
     /// </summary>
     /// <param name="userName">User name</param>
     /// <param name="password">Password</param>
-    /// <param name="onSuccess">callback, AuthenticationResponse, Returns an object with user authentication details.
-	/// list of character Ids, the Id of the last character logged in, bool if has parent email registered, bool if is a user migrating from pop1</param>
-    /// <param name="onRequestFailed">
-	/// callback, GameSparksError, enum,   invalid_username, invalid_password, request_failed, request_timeout</param>
-	public void Authenticate(string userName, string password, onAuthSuccess onSuccess, onRequestFailed onRequestFailed)
+    /// <param name="onSuccess">callback.  Receives AuthenticationResponse with authentication details:
+    /// list of character Ids, the Id of the last character logged in, bool if has parent email registered, bool if is a user migrating from pop1</param>
+    /// <param name="onAuthFailed">
+    /// callback, GameSparksError, enum,   invalid_username, invalid_password, request_failed, request_timeout</param>
+    public void Authenticate(string userName, string password, onAuthSuccess onSuccess, onAuthFailed onAuthFailed)
     {
         Debug.Log("UserName:" + userName + ", Password:" + password);
         Debug.Log("GSM| Attempting Player Authentication....");
         new GameSparks.Api.Requests.AuthenticationRequest()
-			.SetPassword(password)
-			.SetUserName(userName)
-			.Send((response) =>
+            .SetPassword(password)
+            .SetUserName(userName)
+            .Send((response) =>
             {
                 if (!response.HasErrors)
                 {
@@ -170,58 +193,58 @@ public class GameSparksManager : MonoBehaviour
                         {
                             lastCharacterId = response.ScriptData.GetString("last_character");
                         }
-						onSuccess(new AuthResponse(response.ScriptData.GetStringList("character_list").ToArray(), lastCharacterId, response.ScriptData.GetBoolean("hasParentEmail").Value,response.ScriptData.GetBoolean("isPop1Player").Value));
+                            onSuccess(new AuthResponse(response.ScriptData.GetStringList("character_list").ToArray(), lastCharacterId, response.ScriptData.GetBoolean("hasParentEmail").Value));
                     }
                 }
                 else
                 {
-					if(onRequestFailed != null)
-					{
-						onRequestFailed(ProcessGSErrors(response.Errors));
-					}
+                    if (onAuthFailed != null)
+                    {
+                        onAuthFailed(ProcessGSErrors(response.Errors), response.ScriptData.GetString("isPop1"));
+                    }
                 }
             });
-	}
-		
-	/// <summary>
-	/// Receives a new suggested username if the username is taken.
-	/// Receives a GameSparksError enum by default.
-	/// error, - 'username_taken', 'request_failed'
-	/// </summary>
-	public delegate void onRegFailed(GameSparksError error, string suggestedName);
+    }
 
-	/// <summary>
-	/// Receives the new=player's playerID upon registration/
-	/// </summary>
-	public delegate void onRegSuccess(string userName);
+    /// <summary>
+    /// Receives a new suggested username if the username is taken.
+    /// Receives a GameSparksError enum by default.
+    /// error, - 'username_taken', 'request_failed'
+    /// </summary>
+    public delegate void onRegFailed(GameSparksError error, string suggestedName);
 
-	/// <summary>
-	/// Register the specified userName, displayName, password, age, gender.
-	/// </summary>
-	/// <param name="userName">User name.</param>
-	/// <param name="displayName">Display name.</param>
-	/// <param name="password">Password.</param>
-	/// <param name="age">Age.</param>
-	/// <param name="gender">Gender.</param>
-	/// <param name="onRequestSuccess">Callback, is called when the registration is sucessful. Takes the user's playerID</param>
-	/// <param name="onRegFailed">callback, GameSparksError, enum. String, suggested username if the username is taken</param>
-	public void Register(string userName, string displayName, string password, int age, string gender, onRegSuccess onRegSuccess, onRegFailed onRegFailed)
+    /// <summary>
+    /// Receives the new=player's playerID upon registration/
+    /// </summary>
+    public delegate void onRegSuccess(string userName);
+
+    /// <summary>
+    /// Register the specified userName, displayName, password, age, gender.
+    /// </summary>
+    /// <param name="userName">User name.</param>
+    /// <param name="displayName">Display name.</param>
+    /// <param name="password">Password.</param>
+    /// <param name="age">Age.</param>
+    /// <param name="gender">Gender.</param>
+    /// <param name="onRequestSuccess">Callback. Called when the registration is successful. Takes the user's playerID</param>
+    /// <param name="onRegFailed">callback. Receives GameSparksError object: enum, String, suggested username if the username is taken</param>
+    public void Register(string userName, string displayName, string password, int age, string gender, onRegSuccess onRegSuccess, onRegFailed onRegFailed)
     {
         Debug.Log("UserName:" + userName + ", Password:" + password + ", Display Name:" + displayName);
         Debug.Log("GSM| Attempting Registration...");
         new GameSparks.Api.Requests.RegistrationRequest()
-			.SetUserName(userName)
-			.SetDisplayName(displayName)
-			.SetPassword(password)
-			.SetScriptData(new GSRequestData().AddString("gender", gender).AddNumber("age", age))
-			.Send((response) =>
+            .SetUserName(userName)
+            .SetDisplayName(displayName)
+            .SetPassword(password)
+            .SetScriptData(new GSRequestData().AddString("gender", gender).AddNumber("age", age))
+            .Send((response) =>
             {
                 if (!response.HasErrors)
                 {
                     Debug.Log("GSM| Registration Successful \n PlayerID:" + response.UserId);
-					if (onRegSuccess != null)
+                    if (onRegSuccess != null)
                     {
-						onRegSuccess(response.UserId);
+                        onRegSuccess(response.UserId);
                     }
                 }
                 else
@@ -230,48 +253,49 @@ public class GameSparksManager : MonoBehaviour
                     // we need to check that these parameters are not null before sending the callback
                     if (onRegFailed != null && response.Errors.GetString("USERNAME") != null && response.Errors.GetString("USERNAME") == "TAKEN")
                     {
-						onRegFailed((GameSparksError)Enum.Parse(typeof(GameSparksError), response.Errors.GetString("@registration")), response.ScriptData.GetString("suggested-name"));
+                        onRegFailed((GameSparksError)Enum.Parse(typeof(GameSparksError), response.Errors.GetString("@registration")), response.ScriptData.GetString("suggested-name"));
                     }
-						else if(onRegFailed != null && response.Errors.GetString("error") != null && response.Errors.GetString("error") == "timeout")
-					{
-						// timeout will take 10sec, after which the socket will be closed //
-						// this is a default function of the GameSparks SDK and cannot be modified, though the duration //
-						// of the timeout can be changed //
-						onRegFailed((GameSparksError)Enum.Parse(typeof(GameSparksError), "request_timeout"), string.Empty);
-					}
-					else if(onRegFailed != null)
-					{
-						// the final error response, if there is no specific error from the server //
-						onRegFailed((GameSparksError)Enum.Parse(typeof(GameSparksError), "request_failed"), string.Empty);
-					}
+                    else if (onRegFailed != null && response.Errors.GetString("error") != null && response.Errors.GetString("error") == "timeout")
+                    {
+                        // timeout will take 10sec, after which the socket will be closed //
+                        // this is a default function of the GameSparks SDK and cannot be modified, though the duration //
+                        // of the timeout can be changed //
+                        onRegFailed((GameSparksError)Enum.Parse(typeof(GameSparksError), "request_timeout"), string.Empty);
+                    }
+                    else if (onRegFailed != null)
+                    {
+                        // the final error response, if there is no specific error from the server //
+                        onRegFailed((GameSparksError)Enum.Parse(typeof(GameSparksError), "request_failed"), string.Empty);
+                    }
                 }
             });
     }
+
     #endregion
 
     #region INVENTORY CALLS
 
     /// <summary>
-    /// Receives the item-ID of the item being added to the player's inventory 
+    /// Receives the item-ID of the item being removed from the player's inventory 
     /// </summary>
-	public delegate void onItemRemoved(int item_id);
+    public delegate void onItemRemoved(int item_id);
 
-	/// <summary>
-	/// Removes an item from the player's inventory
-	/// </summary>
-	/// <param name="character_id">Character ID</param>
-	/// <param name="item_id">Item ID</param>
-	/// <param name="onItemRemoved">callback, int, Item ID.</param>
-	/// <param name="onRequestFailed">callback, GameSparksError, enum, 
-	/// Errors - invalid_item_id, no_character_record,</param>
+    /// <summary>
+    /// Removes an item from the player's inventory
+    /// </summary>
+    /// <param name="character_id">Character ID</param>
+    /// <param name="item_id">Item ID</param>
+    /// <param name="onItemRemoved">callback, int, Item ID.</param>
+    /// <param name="onRequestFailed">callback, GameSparksError, enum, 
+    /// Errors - invalid_item_id, no_character_record,</param>
     public void RemoveItem(string character_id, int item_id, onItemRemoved onItemRemoved, onRequestFailed onRequestFailed)
     {
         Debug.Log("Attempting To Remove Item...");
         new GameSparks.Api.Requests.LogEventRequest().SetEventKey("removeItem")
-			.SetEventAttribute("character_id", character_id)
-			.SetEventAttribute("item_id", item_id)
-			.SetDurable(true)
-			.Send((response) =>
+            .SetEventAttribute("character_id", character_id)
+            .SetEventAttribute("item_id", item_id)
+            .SetDurable(true)
+            .Send((response) =>
             {
                 if (!response.HasErrors)
                 {
@@ -283,10 +307,10 @@ public class GameSparksManager : MonoBehaviour
                 }
                 else
                 {
-					if(onRequestFailed != null)
-					{
-						onRequestFailed(ProcessGSErrors(response.BaseData));
-					}
+                    if (onRequestFailed != null)
+                    {
+                        onRequestFailed(ProcessGSErrors(response.BaseData));
+                    }
                 }
             });
     }
@@ -294,7 +318,7 @@ public class GameSparksManager : MonoBehaviour
     /// <summary>
     /// The item id of the item added to the character's inventory
     /// </summary>
-	public delegate void onItemPickedUp(int item_id);
+    public delegate void onItemPickedUp(int item_id);
 
     /// <summary>
     /// Adds an item to the inventory of the requested character
@@ -310,11 +334,11 @@ public class GameSparksManager : MonoBehaviour
     {
         Debug.Log("Attempting To Pickup Item...");
         new GameSparks.Api.Requests.LogEventRequest().SetEventKey("pickUpItem")
-			.SetEventAttribute("character_id", character_id)
-			.SetEventAttribute("item_id", item_id)
-			.SetEventAttribute("scene_id", scene_id)
-			.SetDurable(true)
-			.Send((response) =>
+            .SetEventAttribute("character_id", character_id)
+            .SetEventAttribute("item_id", item_id)
+            .SetEventAttribute("scene_id", scene_id)
+            .SetDurable(true)
+            .Send((response) =>
             {
                 if (!response.HasErrors)
                 {
@@ -326,38 +350,38 @@ public class GameSparksManager : MonoBehaviour
                 }
                 else
                 {
-					if(onRequestFailed != null)
-					{
-						onRequestFailed(ProcessGSErrors(response.BaseData));
-					}
+                    if (onRequestFailed != null)
+                    {
+                        onRequestFailed(ProcessGSErrors(response.BaseData));
+                    }
                 }
             });
     }
 
     // THIS HAS BEEN DEPRECATED //
-    //	public void moveItem(int _item_id, int _slot_id, logevent_callback _callback)
-    //	{
-    //		Debug.Log ("Attempting To Move Item...");
-    //		new GameSparks.Api.Requests.LogEventRequest ().SetEventKey ("moveItem")
-    //			.SetEventAttribute ("inventoryItemID", _item_id)
-    //			.SetEventAttribute ("destinationSlot", _slot_id)
-    //			.Send ((response) => {
-    //			if (!response.HasErrors) {
-    //				Debug.LogWarning ("GSM| Item Moved...");
-    //				if (_callback != null) {
-    //					_callback (response);
-    //				}
-    //			} else {
-    //				Debug.LogWarning ("GSM| Error \n " + response.Errors.JSON);
-    //			}
-    //		});
-    //	}
+    //  public void moveItem(int _item_id, int _slot_id, logevent_callback _callback)
+    //  {
+    //      Debug.Log ("Attempting To Move Item...");
+    //      new GameSparks.Api.Requests.LogEventRequest ().SetEventKey ("moveItem")
+    //          .SetEventAttribute ("inventoryItemID", _item_id)
+    //          .SetEventAttribute ("destinationSlot", _slot_id)
+    //          .Send ((response) => {
+    //          if (!response.HasErrors) {
+    //              Debug.LogWarning ("GSM| Item Moved...");
+    //              if (_callback != null) {
+    //                  _callback (response);
+    //              }
+    //          } else {
+    //              Debug.LogWarning ("GSM| Error \n " + response.Errors.JSON);
+    //          }
+    //      });
+    //  }
 
    
-	/// <summary>
-	/// receives the item id equipped
-	/// </summary>
-	public delegate void onItemEquipped(int item_id);
+    /// <summary>
+    /// receives the item id equipped
+    /// </summary>
+    public delegate void onItemEquipped(int item_id);
 
     /// <summary>
     /// Equips the item.
@@ -366,16 +390,16 @@ public class GameSparksManager : MonoBehaviour
     /// <param name="item_id">Item ID</param>
     /// <param name="equip_location">Equip location, a string denoting the location</param>
     /// <param name="onItemEquipped">On item equipped. callback, int, the ID of the item equipped</param>
-	/// <param name="onRequestFailed">On request failed, callback, GameSparksError, enum, item_not_found_in_scene,min_level_not_met,max_level_exceeded,_</param>
+    /// <param name="onRequestFailed">On request failed, callback, GameSparksError, enum, item_not_found_in_scene,min_level_not_met,max_level_exceeded,_</param>
     public void EquipItem(string character_id, int item_id, string equip_location, onItemEquipped onItemEquipped, onRequestFailed onRequestFailed)
     {
         Debug.Log("Attempting To Equip Item...");
         new GameSparks.Api.Requests.LogEventRequest().SetEventKey("equipItem")
-			.SetEventAttribute("character_id", character_id)
-			.SetEventAttribute("item_id", item_id)
-			.SetEventAttribute("equip_location", equip_location)
-			.SetDurable(true)
-			.Send((response) =>
+            .SetEventAttribute("character_id", character_id)
+            .SetEventAttribute("item_id", item_id)
+            .SetEventAttribute("equip_location", equip_location)
+            .SetDurable(true)
+            .Send((response) =>
             {
                 if (!response.HasErrors)
                 {
@@ -387,34 +411,34 @@ public class GameSparksManager : MonoBehaviour
                 }
                 else
                 {
-					if(onRequestFailed != null)
-					{
-						onRequestFailed(ProcessGSErrors(response.BaseData));
-					}
+                    if (onRequestFailed != null)
+                    {
+                        onRequestFailed(ProcessGSErrors(response.BaseData));
+                    }
                 }
             });
     }
-		
-	/// <summary>
-	/// receives the id of the item that has been used
-	/// </summary>
-	public delegate void onItemUsed(int item_id);
 
-	/// <summary>
-	/// Uses an item.
-	/// </summary>
-	/// <param name="character_id">Character ID</param>
-	/// <param name="item_id">Item ID</param>
-	/// <param name="onItemUsed">On item used, callback, returns the item ID</param>
-	/// <param name="onRequestFailed">On request failed, callback, GameSparksError, enum</param>
+    /// <summary>
+    /// receives the id of the item that has been used
+    /// </summary>
+    public delegate void onItemUsed(int item_id);
+
+    /// <summary>
+    /// Uses an item.
+    /// </summary>
+    /// <param name="character_id">Character ID</param>
+    /// <param name="item_id">Item ID</param>
+    /// <param name="onItemUsed">On item used, callback, returns the item ID</param>
+    /// <param name="onRequestFailed">On request failed, callback, GameSparksError, enum</param>
     public void UseItem(string character_id, int item_id, onItemUsed onItemUsed, onRequestFailed onRequestFailed)
     {
         Debug.Log("Attempting To Use Item...");
         new GameSparks.Api.Requests.LogEventRequest().SetEventKey("useItem")
-			.SetEventAttribute("character_id", character_id)
-			.SetEventAttribute("item_id", item_id)
-			.SetDurable(true)
-			.Send((response) =>
+            .SetEventAttribute("character_id", character_id)
+            .SetEventAttribute("item_id", item_id)
+            .SetDurable(true)
+            .Send((response) =>
             {
                 if (!response.HasErrors)
                 {
@@ -426,31 +450,31 @@ public class GameSparksManager : MonoBehaviour
                 }
                 else
                 {
-					if (onRequestFailed != null)
-					{
-						onRequestFailed(ProcessGSErrors(response.Errors));
-					}
+                    if (onRequestFailed != null)
+                    {
+                        onRequestFailed(ProcessGSErrors(response.Errors));
+                    }
                 }
             });
     }
-		
-	/// <summary>
-	/// Receives an array of items
-	/// </summary>
-	public delegate void onGetInventory(Item[] items);
 
-	/// <summary>
-	/// Returns the player's inventory list
-	/// </summary>
-	/// <param name="character_id">Character ID.</param>
-	/// <param name="onGetInventory">On get inventory, callback, Item[]</param>
-	/// <param name="onRequestFailed">On request failed, callback, GameSparksError, 'no_inventory'</param>
-	public void GetInventory(string character_id, onGetInventory onGetInventory, onRequestFailed onRequestFailed)
+    /// <summary>
+    /// Receives an array of items
+    /// </summary>
+    public delegate void onGetInventory(Item[] items);
+
+    /// <summary>
+    /// Returns the player's inventory list
+    /// </summary>
+    /// <param name="character_id">Character ID.</param>
+    /// <param name="onGetInventory">On get inventory, callback, Item[]</param>
+    /// <param name="onRequestFailed">On request failed, callback, GameSparksError, 'no_inventory'</param>
+    public void GetInventory(string character_id, onGetInventory onGetInventory, onRequestFailed onRequestFailed)
     {
         Debug.Log("GSM| Fetching Inventory Items...");
         new GameSparks.Api.Requests.LogEventRequest().SetEventKey("getInventory")
-			.SetEventAttribute("character_id", character_id)
-			.Send((response) =>
+            .SetEventAttribute("character_id", character_id)
+            .Send((response) =>
             {
                 if (!response.HasErrors)
                 {
@@ -468,13 +492,14 @@ public class GameSparksManager : MonoBehaviour
                 }
                 else
                 {
-					if (onRequestFailed != null)
-					{
-						onRequestFailed(ProcessGSErrors(response.Errors));
-					}
+                    if (onRequestFailed != null)
+                    {
+                        onRequestFailed(ProcessGSErrors(response.Errors));
+                    }
                 }
             });
     }
+
     #endregion
 
     #region SCENES STATE API CALLS
@@ -482,24 +507,24 @@ public class GameSparksManager : MonoBehaviour
     /// <summary>
     /// Receives a scene-state object
     /// </summary>
-	public delegate void onSceneStateFound(SceneState sceneState);
+    public delegate void onSceneStateFound(SceneState sceneState);
 
-	/// <summary>
-	/// Gets the state of the scene.
-	/// </summary>
-	/// <param name="character_id">Character ID</param>
-	/// <param name="island_id">Island ID</param>
-	/// <param name="scene_id">Scene ID</param>
-	/// <param name="onSceneStateFound">On scene state found, callback, SceneStat</param>
-	/// <param name="onRequestFailed">On request failed, callback, GameSparksError, invalid_scene_id, invalid_island_id</param>
+    /// <summary>
+    /// Gets the state of the scene.
+    /// </summary>
+    /// <param name="character_id">Character ID</param>
+    /// <param name="island_id">Island ID</param>
+    /// <param name="scene_id">Scene ID</param>
+    /// <param name="onSceneStateFound">On scene state found, callback, SceneStat</param>
+    /// <param name="onRequestFailed">On request failed, callback, GameSparksError, invalid_scene_id, invalid_island_id</param>
     public void GetSceneState(string character_id, int island_id, int scene_id, onSceneStateFound onSceneStateFound, onRequestFailed onRequestFailed)
     {
         Debug.Log("GSM| Fetching Scenes ...");
         new GameSparks.Api.Requests.LogEventRequest().SetEventKey("getSceneState")
-			.SetEventAttribute("character_id", character_id)
-			.SetEventAttribute("island_id", island_id)
-			.SetEventAttribute("scene_id", scene_id)
-			.Send((response) =>
+            .SetEventAttribute("character_id", character_id)
+            .SetEventAttribute("island_id", island_id)
+            .SetEventAttribute("scene_id", scene_id)
+            .Send((response) =>
             {
                 if (!response.HasErrors)
                 {
@@ -511,33 +536,33 @@ public class GameSparksManager : MonoBehaviour
                 }
                 else
                 {
-					if (onRequestFailed != null)
-					{
-						onRequestFailed(ProcessGSErrors(response.Errors));
-					}
+                    if (onRequestFailed != null)
+                    {
+                        onRequestFailed(ProcessGSErrors(response.Errors));
+                    }
                 }
             });
     }
 
-	/// <summary>
-	/// Sets the state of the scene.
-	/// </summary>
-	/// <param name="character_id">Character iID</param>
-	/// <param name="island_id">Island ID</param>
-	/// <param name="scene_id">Scene ID.</param>
-	/// <param name="newScene">New scene.</param>
-	/// <param name="onRequestSuccess">On request success. callback, returns nothing</param>
-	/// <param name="onRequestFailed">On request failed. callback, GameSparksError, enum, 'invalid_character_id, invalid_scene_id'</param>
+    /// <summary>
+    /// Sets the state of the scene.
+    /// </summary>
+    /// <param name="character_id">Character iID</param>
+    /// <param name="island_id">Island ID</param>
+    /// <param name="scene_id">Scene ID.</param>
+    /// <param name="newScene">New scene.</param>
+    /// <param name="onRequestSuccess">Callback on request success. No arguments.</param>
+    /// <param name="onRequestFailed">Callback on request failed. Receives GameSparksError: enum, 'invalid_character_id, invalid_scene_id'</param>
     public void SetSceneState(string character_id, int island_id, int scene_id, SceneState newScene, onRequestSuccess onRequestSuccess, onRequestFailed onRequestFailed)
     {
         Debug.Log("Attempting To Set Scene State ...");
         new GameSparks.Api.Requests.LogEventRequest().SetEventKey("setSceneState")
-			.SetEventAttribute("character_id", character_id)
-			.SetEventAttribute("island_id", island_id)
-			.SetEventAttribute("scene_id", scene_id)
-			.SetEventAttribute("state", newScene.ToGSData())
-			.SetDurable(true)
-			.Send((response) =>
+            .SetEventAttribute("character_id", character_id)
+            .SetEventAttribute("island_id", island_id)
+            .SetEventAttribute("scene_id", scene_id)
+            .SetEventAttribute("state", newScene.ToGSData())
+            .SetDurable(true)
+            .Send((response) =>
             {
                 if (!response.HasErrors)
                 {
@@ -549,34 +574,34 @@ public class GameSparksManager : MonoBehaviour
                 }
                 else
                 {
-					if (onRequestFailed != null)
-					{
-						onRequestFailed(ProcessGSErrors(response.Errors));
-					}
+                    if (onRequestFailed != null)
+                    {
+                        onRequestFailed(ProcessGSErrors(response.Errors));
+                    }
                 }
             });
     }
 
-	/// <summary>
-	/// receives the island-ID and scene-ID of a scene just entered
-	/// </summary>
+    /// <summary>
+    /// receives the island-ID and scene-ID of a scene just entered
+    /// </summary>
     public delegate void onEnterScene(int island_id,int scene_id);
 
-	/// <summary>
-	/// Registers the player having entered a scene
-	/// </summary>
-	/// <param name="character_id">Character ID.</param>
-	/// <param name="scene_id">Scene ID.</param>
-	/// <param name="onEnterScene">On enter scene, callback, island-ID & scene-ID</param>
-	/// <param name="onRequestFailed">On request failed, callback, GameSparksError, enum, 'invalid_character_id, invalid_scene_id'</param>
+    /// <summary>
+    /// Registers the player having entered a scene
+    /// </summary>
+    /// <param name="character_id">Character ID.</param>
+    /// <param name="scene_id">Scene ID.</param>
+    /// <param name="onEnterScene">Callback on success. Receives island-ID & scene-ID</param>
+    /// <param name="onRequestFailed">Callback on request failed. Receives GameSparksError: enum, 'invalid_character_id, invalid_scene_id'</param>
     public void EnterScene(string character_id, int scene_id, onEnterScene onEnterScene, onRequestFailed onRequestFailed)
     {
         Debug.Log("Attempting To Enter Scene ...");
         new GameSparks.Api.Requests.LogEventRequest().SetEventKey("enterScene")
-			.SetEventAttribute("character_id", character_id)
-			.SetEventAttribute("scene_id", scene_id)
-			.SetDurable(true)
-			.Send((response) =>
+            .SetEventAttribute("character_id", character_id)
+            .SetEventAttribute("scene_id", scene_id)
+            .SetDurable(true)
+            .Send((response) =>
             {
                 if (!response.HasErrors)
                 {
@@ -588,13 +613,14 @@ public class GameSparksManager : MonoBehaviour
                 }
                 else
                 {
-					if (onRequestFailed != null)
-					{
-						onRequestFailed(ProcessGSErrors(response.Errors));
-					}
+                    if (onRequestFailed != null)
+                    {
+                        onRequestFailed(ProcessGSErrors(response.Errors));
+                    }
                 }
             });
     }
+
     #endregion
 
     #region Character API calls
@@ -605,42 +631,44 @@ public class GameSparksManager : MonoBehaviour
     /// This circumvents that by returning what is in the endpoint.
     /// </summary>
     /// <returns>Generates a new character name</returns>
-    /// <param name="onCharacterName">On character name. receives the character name</param>
-    /// <param name="onRequestFailed">On request failed. callback, GameSparksError, request failed</param>
+    /// <param name="count">int - number of names to generate.</param> 
+    /// <param name="onCharacterName">Callback on success. Receives the array of character names.</param>
+    /// <param name="onRequestFailed">Callback on request failed. Receives GameSparksError</param>
     private IEnumerator generateNamesRequest(int count, onCharacterName onCharacterName, onRequestFailed onRequestFailed)
     {
-        WWW genNamesRequest = new WWW("https://preview.gamesparks.net/callback/E300018ZDdAx/generateName/YR5w9F53GYeMsP8LTBqijeeAsPM66v7J?count="+count);
+        WWW genNamesRequest = new WWW("https://preview.gamesparks.net/callback/E300018ZDdAx/generateName/YR5w9F53GYeMsP8LTBqijeeAsPM66v7J?count=" + count);
         yield return genNamesRequest;
         // once we have the response we can parse it to an object from the JSON using gsdata //
         GSRequestData respData = new GSRequestData(genNamesRequest.text);
-		if (respData.GetStringList("names") != null && onCharacterName != null)
+        if (respData.GetStringList("names") != null && onCharacterName != null)
         {
-			onCharacterName(respData.GetStringList("names").ToArray());
+            onCharacterName(respData.GetStringList("names").ToArray());
         }
-		else if (respData.GetString("error") != null && onRequestFailed != null)
+        else if (respData.GetString("error") != null && onRequestFailed != null)
         {
-			onRequestFailed(ProcessGSErrors(new GSRequestData().AddString("@generateCharacterName", respData.GetString("error"))));
+            onRequestFailed(ProcessGSErrors(new GSRequestData().AddString("@generateCharacterName", respData.GetString("error"))));
         }
     }
 
     /// <summary>
     /// Receives the name of the character
     /// </summary>
-	public delegate void onCharacterName(string[] names);
+    public delegate void onCharacterName(string[] names);
 
     /// <summary>
     /// Generates the name of the character.
     /// Calls a coroutine to make an HTTP request
     /// </summary>
-	/// <param name="count">number of names to retrieve</param>
-    /// <param name="onCharacterName">On character name. returns the character name</param>
-    /// <param name="onRequestFailed">On request failed. callback, GameSparkError, request_failed</param>
+    /// <param name="count">number of names to retrieve</param>
+    /// <param name="onCharacterName">Callback on success. Receives the array of character names.</param>
+    /// <param name="onRequestFailed">Callback on request failed. Receives GameSparksError</param>
     public void GenerateCharacterNames(int count, onCharacterName onCharacterName, onRequestFailed onRequestFailed)
     {
-        Debug.Log("GSM| Fetching New Character Names  ["+count+"]...");
-		if (count <= 0) {
-			count = 1;
-		}
+        Debug.Log("GSM| Fetching New Character Names  [" + count + "]...");
+        if (count <= 0)
+        {
+            count = 1;
+        }
         StartCoroutine(generateNamesRequest(count, onCharacterName, onRequestFailed));
     }
 
@@ -649,16 +677,16 @@ public class GameSparksManager : MonoBehaviour
     /// </summary>
     /// <param name="character_id">Character ID</param>
     /// <param name="amount">Amount.</param>
-    /// <param name="onLevelAndExperience">On level and experience. callback, string, character-name</param>
-    /// <param name="onRequestFailed">On request failed. GameSparksError, enum, request_failed</param>
+    /// <param name="onLevelAndExperience">Callback on success. Called with string character-name</param>
+    /// <param name="onRequestFailed">Callback on request failed. Called with GameSparksError: enum, request_failed</param>
     public void GiveExperience(string character_id, int amount, onLevelAndExperience onLevelAndExperience, onRequestFailed onRequestFailed)
     {
         Debug.Log("GSM|Attempting To Give Xp...");
         new GameSparks.Api.Requests.LogEventRequest().SetEventKey("giveXp")
-			.SetEventAttribute("character_id", character_id)
-			.SetEventAttribute("amount", amount)
-			.SetDurable(true)
-			.Send((response) =>
+            .SetEventAttribute("character_id", character_id)
+            .SetEventAttribute("amount", amount)
+            .SetDurable(true)
+            .Send((response) =>
             {
                 if (!response.HasErrors)
                 {
@@ -670,10 +698,10 @@ public class GameSparksManager : MonoBehaviour
                 }
                 else
                 {
-					if (onRequestFailed != null)
-					{
-						onRequestFailed(ProcessGSErrors(response.Errors));
-					}
+                    if (onRequestFailed != null)
+                    {
+                        onRequestFailed(ProcessGSErrors(response.Errors));
+                    }
                 }
             });
     }
@@ -683,20 +711,20 @@ public class GameSparksManager : MonoBehaviour
     /// Having the giveXP and GetXp calls return the same data, it means you can assign one call to this delegate
     /// and it will automatically re-draw the new xp and level values instead of requesting them again.
     /// </summary>
-	public delegate void onLevelAndExperience(int level,int xp);
+    public delegate void onLevelAndExperience(int level,int xp);
 
-	/// <summary>
-	/// Returns the player-character's level and experiance
-	/// </summary>
-	/// <param name="character_id">Character ID.</param>
-	/// <param name="onLevelAndExperience">On level and experience. callback, level and xp (int)</param>
-	/// <param name="onRequestFailed">On request failed. callback, GameSparksError, invalid_character_id</param>
+    /// <summary>
+    /// Returns the player-character's level and experiance
+    /// </summary>
+    /// <param name="character_id">Character ID.</param>
+    /// <param name="onLevelAndExperience">Callback on success. Called with level and xp (ints)</param>
+    /// <param name="onRequestFailed">Callback on request failed. Called with GameSparksError: invalid_character_id</param>
     public void GetLevelAndExperience(string character_id, onLevelAndExperience onLevelAndExperience, onRequestFailed onRequestFailed)
     {
         Debug.Log("Retrieving Player Level & Experience...");
         new GameSparks.Api.Requests.LogEventRequest().SetEventKey("getLevelAndExperience")
-			.SetEventAttribute("character_id", character_id)
-			.Send((response) =>
+            .SetEventAttribute("character_id", character_id)
+            .Send((response) =>
             {
                 if (!response.HasErrors)
                 {
@@ -708,194 +736,203 @@ public class GameSparksManager : MonoBehaviour
                 }
                 else
                 {
-					if (onRequestFailed != null)
-					{
-						onRequestFailed(ProcessGSErrors(response.Errors));
-					}
+                    if (onRequestFailed != null)
+                    {
+                        onRequestFailed(ProcessGSErrors(response.Errors));
+                    }
                 }
             });
     }
-		
-	/// <summary>
-	/// receives the character ID
-	/// </summary>
-	public delegate void onGetCharacter(Character character);
 
-	/// <summary>
-	/// Gets the character-details given the id
-	/// </summary>
-	/// <param name="character_id">Character ID</param>
-	/// <param name="onGetCharacter">On get character. callback, Character</param>
-	/// <param name="onRequestFailed">On request failed. callback, GameSparksError, enum, invalid_character_id</param>
-	public void GetCharacter(string character_id, onGetCharacter onGetCharacter, onRequestFailed onRequestFailed)
-	{
-		Debug.Log("GMS| Fetching Info For Character: " + character_id);
-		new GameSparks.Api.Requests.LogEventRequest().SetEventKey("getCharacter")
-			.SetEventAttribute("character_id", character_id)
-			.Send((response) =>
-				{
-					if (!response.HasErrors)
-					{
-						Debug.Log("GSM| Found Character....");
-						onGetCharacter(new Character(response.ScriptData.GetGSData("character").GetGSData("_id").GetString("$oid"), response.ScriptData.GetGSData("character").GetInt("level").Value, (int)response.ScriptData.GetGSData("character").GetNumber("experience").Value, response.ScriptData.GetGSData("character").GetString("name"), response.ScriptData.GetGSData("character").GetString("gender")));
-					}
-					else
-					{
-						if (onRequestFailed != null)
-						{
-							onRequestFailed(ProcessGSErrors(response.Errors));
-						}
-					}
-				});
-	}
+    /// <summary>
+    /// receives the character ID
+    /// </summary>
+    public delegate void onGetCharacter(Character character);
 
-	/// <summary>
-	/// receives a list of characterIDs
-	/// </summary>
-	public delegate void onGetCharacters(Character[] characters);
+    /// <summary>
+    /// Gets the character-details given the id
+    /// </summary>
+    /// <param name="character_id">Character ID</param>
+    /// <param name="onGetCharacter">Callback on success. Receives Character object.</param>
+    /// <param name="onRequestFailed">Callback on request failed. Receives GameSparksError object: enum, invalid_character_id</param>
+    public void GetCharacter(string character_id, onGetCharacter onGetCharacter, onRequestFailed onRequestFailed)
+    {
+        Debug.Log("GMS| Fetching Info For Character: " + character_id);
+        new GameSparks.Api.Requests.LogEventRequest().SetEventKey("getCharacter")
+            .SetEventAttribute("character_id", character_id)
+            .Send((response) =>
+            {
+                if (!response.HasErrors)
+                {
+                    Debug.Log("GSM| Found Character....");
+                    onGetCharacter(new Character(response.ScriptData.GetGSData("character").GetGSData("_id").GetString("$oid"), response.ScriptData.GetGSData("character").GetInt("level").Value, (int)response.ScriptData.GetGSData("character").GetNumber("experience").Value, response.ScriptData.GetGSData("character").GetString("name"), response.ScriptData.GetGSData("character").GetString("gender")));
+                }
+                else
+                {
+                    if (onRequestFailed != null)
+                    {
+                        onRequestFailed(ProcessGSErrors(response.Errors));
+                    }
+                }
+            });
+    }
 
-	/// <summary>
-	/// Gets the details of a list of player-characters
-	/// </summary>
-	/// <param name="character_ids">List of character IDs</param>
-	/// <param name="onGetCharacters">On get characters. callback, Character[]</param>
-	/// <param name="onRequestFailed">On request failed. GameSparksError, enum</param>
-	public void GetCharacters(List<string> character_ids, onGetCharacters onGetCharacters, onRequestFailed onRequestFailed)
-	{
-		Debug.Log("GMS| Fetching Info For Characters");
-		GSRequestData id_list = new GSRequestData().AddStringList("list", character_ids);
-		new GameSparks.Api.Requests.LogEventRequest().SetEventKey("getCharacter")
-			.SetEventAttribute("character_id", id_list)
-			.Send((response) =>
-				{
-					if (!response.HasErrors)
-					{
-						Debug.Log("GSM| Found Characters....");
-						List<Character> charList = new List<Character>();
-						foreach (GSData character in response.ScriptData.GetGSDataList("character"))
-						{
-							charList.Add(new Character(character.GetGSData("_id").GetString("$oid"), character.GetInt("level").Value, character.GetInt("experience").Value, character.GetString("name"), character.GetString("gender")));
-						}
-						onGetCharacters(charList.ToArray());
-					}
-					else
-					{
-						if (onRequestFailed != null)
-						{
-							onRequestFailed(ProcessGSErrors(response.Errors));
-						}
-					}
-				});
-	}
+    /// <summary>
+    /// receives a list of characterIDs
+    /// </summary>
+    public delegate void onGetCharacters(Character[] characters);
 
-	/// <summary>
-	/// Receives the ID of the new character
-	/// </summary>
-	public delegate void onCharacterCreated(string newCharacterID);
+    /// <summary>
+    /// Gets the details of a list of player-characters
+    /// </summary>
+    /// <param name="character_ids">List of character IDs</param>
+    /// <param name="onGetCharacters">On get characters. callback, Character[]</param>
+    /// <param name="onRequestFailed">On request failed. GameSparksError, enum</param>
+    public void GetCharacters(List<string> character_ids, onGetCharacters onGetCharacters, onRequestFailed onRequestFailed)
+    {
+        Debug.Log("GMS| Fetching Info For Characters");
+        GSRequestData id_list = new GSRequestData().AddStringList("list", character_ids);
+        new GameSparks.Api.Requests.LogEventRequest().SetEventKey("getCharacter")
+            .SetEventAttribute("character_id", id_list)
+            .Send((response) =>
+            {
+                if (!response.HasErrors)
+                {
+                    Debug.Log("GSM| Found Characters....");
+                    List<Character> charList = new List<Character>();
+                    foreach (GSData character in response.ScriptData.GetGSDataList("character"))
+                    {
+                        charList.Add(new Character(character.GetGSData("_id").GetString("$oid"), character.GetInt("level").Value, character.GetInt("experience").Value, character.GetString("name"), character.GetString("gender")));
+                    }
+                    onGetCharacters(charList.ToArray());
+                }
+                else
+                {
+                    if (onRequestFailed != null)
+                    {
+                        onRequestFailed(ProcessGSErrors(response.Errors));
+                    }
+                }
+            });
+    }
 
-	/// <summary>
-	/// Creates the character.
-	/// </summary>
-	/// <param name="name">Name.</param>
-	/// <param name="gender">Gender.</param>
-	/// <param name="onCharacterCreated">On character created. callback, returns the ID of the new character</param>
-	/// <param name="onRequestFailed">On request failed. GameSparksError, enum</param>
-	public void CreateCharacter(string name, string gender, onCharacterCreated onCharacterCreated, onRequestFailed onRequestFailed)
-	{
-		Debug.Log("GMS| Creating New Character: " + name);
-		new GameSparks.Api.Requests.LogEventRequest().SetEventKey("createCharacter")
-			.SetEventAttribute("name", name)
-			.SetEventAttribute("gender", gender)
-			.SetDurable(true)
-			.Send((response) =>
-				{
-					if (!response.HasErrors)
-					{
-						Debug.Log("GSM| Character Created....");
-						if (onCharacterCreated != null)
-						{
-							onCharacterCreated(response.ScriptData.GetString("new-character-id"));
-						}
-					}
-					else
-					{
-						if (onRequestFailed != null)
-						{
-							onRequestFailed(ProcessGSErrors(response.Errors));
-						}
-					}
-				});
-	}
+    /// <summary>
+    /// Receives the ID of the new character
+    /// </summary>
+    public delegate void onCharacterCreated(string newCharacterID);
 
-	#endregion
+    /// <summary>
+    /// Creates the character.
+    /// </summary>
+    /// <param name="name">Name.</param>
+    /// <param name="gender">Gender.</param>
+    /// <param name="onCharacterCreated">On character created. callback, returns the ID of the new character</param>
+    /// <param name="onRequestFailed">On request failed. GameSparksError, enum</param>
+    public void CreateCharacter(string name, string gender, onCharacterCreated onCharacterCreated, onRequestFailed onRequestFailed)
+    {
+        Debug.Log("GMS| Creating New Character: " + name);
+        new GameSparks.Api.Requests.LogEventRequest().SetEventKey("createCharacter")
+            .SetEventAttribute("name", name)
+            .SetEventAttribute("gender", gender)
+            .SetDurable(true)
+            .Send((response) =>
+            {
+                if (!response.HasErrors)
+                {
+                    Debug.Log("GSM| Character Created....");
+                    if (onCharacterCreated != null)
+                    {
+                        onCharacterCreated(response.ScriptData.GetString("new-character-id"));
+                    }
+                }
+                else
+                {
+                    if (onRequestFailed != null)
+                    {
+                        onRequestFailed(ProcessGSErrors(response.Errors));
+                    }
+                }
+            });
+    }
+
+    #endregion
 
     #region Player API calls
 
     /// <summary>
-    /// Sends the reset password email.
+    /// Sends the reset password email http request.
     /// </summary>
-    /// <param name="email">Email.</param>
-    /// <param name="onRequestSuccess">Called with no arguments on success.</param>
-    /// <param name="onRequestFailed">Called on failure with an error message string.</param>
-    public void SendResetPasswordEmail(onRequestSuccess onRequestSuccess, onRequestFailed onRequestFailed)
+    /// <returns>The reset password email request.</returns>
+    /// <param name="userName">User name.</param>
+    /// <param name="onRequestSuccess">On request success. callback</param>
+    /// <param name="onRequestFailed">On request failed. GameSparksError, enum , invalid-username, no-email</param>
+    private IEnumerator sendResetPasswordEmailRequest(string userName, onRequestSuccess onRequestSuccess, onRequestFailed onRequestFailed)
+    {
+        WWW passwordResetRequest = new WWW("https://preview.gamesparks.net/callback/E300018ZDdAx/passReset/gZpjnyCSkKxNboajk9drAMCn8VnKnAlT?userName="+userName);
+        yield return passwordResetRequest;
+        // once we have the response we can parse it to an object from the JSON using gsdata //
+        GSRequestData respData = new GSRequestData(passwordResetRequest.text);
+        if (respData.GetString("@passReset") != null && onRequestSuccess != null)
+        {
+            onRequestSuccess();
+        }
+        else if (respData.GetGSData("errors").GetString("@passReset") != null && onRequestFailed != null)
+        {
+            onRequestFailed(ProcessGSErrors(new GSRequestData().AddString("@passReset", respData.GetGSData("errors").GetString("@passReset"))));
+        }
+    }
+
+    /// <summary>
+    /// Sends a reset-password email if the user has a valid email registered
+    /// </summary>
+    /// <param name="userName">User name.</param>
+    /// <param name="onRequestSuccess">On request success. callback</param>
+    /// <param name="onRequestFailed">On request failed. GameSparksError, enum , invalid-username, no-email</param>
+    public void SendResetPasswordEmail(string userName, onRequestSuccess onRequestSuccess, onRequestFailed onRequestFailed)
     {
         Debug.Log("Sending Password Reset Email...");
-        new GameSparks.Api.Requests.LogEventRequest().SetEventKey("sendResetPasswordEmail")
-			.Send((response) =>
-            {
-                if (!response.HasErrors)
-                {
-                    Debug.Log("GSM| Email Sent...");
-                    onRequestSuccess();
-                }
-                else
-                {
-					if (onRequestFailed != null)
-					{
-						onRequestFailed(ProcessGSErrors(response.Errors));
-					}
-                }
-            });
+        // we need to send off a http-request to the gamesparks backend in order to find the user;s email //
+        StartCoroutine(sendResetPasswordEmailRequest(userName, onRequestSuccess, onRequestFailed));
     }
 
     // THIS REQUEST HAS BEEN DEPRECATED //
-    //	/// <summary>
-    //	/// Reset password on success callback.
-    //	/// </summary>
-    //	public delegate void onResetPasswordSuccess(string _newPassword);
-    //	/// <summary>
-    //	/// This function will send a old and new password to the server.
-    //	/// It will validate the old password and check the strength of the new password
-    //	/// </summary>
-    //	/// <param name="old_password">Old password.</param>
-    //	/// <param name="new_password">New password.</param>
-    //	/// <param name="_onSuccess">A callback for when the request is successful. Is nullable</param>
-    //	/// <param name="_onFailed">A callback for when the request has failed. Is nullable</param>
-    //	public void ResetPassword(string oldPassword, string newPassword, onResetPasswordSuccess onSuccess, onRequestFailed onRequestFailed)
-    //	{
-    //		if (oldPassword != string.Empty && newPassword != string.Empty) {
-    //			Debug.Log ("Retrieving Player Level & Experience...");
-    //			new GameSparks.Api.Requests.LogEventRequest ().SetEventKey ("resetPassword")
-    //				.SetEventAttribute ("old_password", oldPassword)
-    //				.SetEventAttribute ("new_password", newPassword)
-    //				.Send ((response) => {
-    //				if (!response.HasErrors) {
-    //					Debug.Log ("GSM| Password Changed...");
-    //					if (onSuccess != null) {
-    //						onSuccess (response.ScriptData.GetString ("@resetPassword"));
-    //					}
-    //				} else {
-    //					Debug.LogWarning ("GSM| Error \n " + response.Errors.JSON);
-    //					if (onRequestFailed != null && response.BaseData.GetGSData ("error") != null) {
-    //						Debug.LogWarning (response.BaseData.GetGSData ("error").GetString ("@resetPassword"));
-    //						onRequestFailed (response.BaseData.GetGSData ("error").GetString ("@resetPassword"));
-    //					}
-    //				}
-    //			});
-    //		} else {
-    //			Debug.LogWarning ("GSM| old-password or new-password empty...");
-    //		}
-    //	}
+    //  /// <summary>
+    //  /// Reset password on success callback.
+    //  /// </summary>
+    //  public delegate void onResetPasswordSuccess(string _newPassword);
+    //  /// <summary>
+    //  /// This function will send a old and new password to the server.
+    //  /// It will validate the old password and check the strength of the new password
+    //  /// </summary>
+    //  /// <param name="old_password">Old password.</param>
+    //  /// <param name="new_password">New password.</param>
+    //  /// <param name="_onSuccess">A callback for when the request is successful. Is nullable</param>
+    //  /// <param name="_onFailed">A callback for when the request has failed. Is nullable</param>
+    //  public void ResetPassword(string oldPassword, string newPassword, onResetPasswordSuccess onSuccess, onRequestFailed onRequestFailed)
+    //  {
+    //      if (oldPassword != string.Empty && newPassword != string.Empty) {
+    //          Debug.Log ("Retrieving Player Level & Experience...");
+    //          new GameSparks.Api.Requests.LogEventRequest ().SetEventKey ("resetPassword")
+    //              .SetEventAttribute ("old_password", oldPassword)
+    //              .SetEventAttribute ("new_password", newPassword)
+    //              .Send ((response) => {
+    //              if (!response.HasErrors) {
+    //                  Debug.Log ("GSM| Password Changed...");
+    //                  if (onSuccess != null) {
+    //                      onSuccess (response.ScriptData.GetString ("@resetPassword"));
+    //                  }
+    //              } else {
+    //                  Debug.LogWarning ("GSM| Error \n " + response.Errors.JSON);
+    //                  if (onRequestFailed != null && response.BaseData.GetGSData ("error") != null) {
+    //                      Debug.LogWarning (response.BaseData.GetGSData ("error").GetString ("@resetPassword"));
+    //                      onRequestFailed (response.BaseData.GetGSData ("error").GetString ("@resetPassword"));
+    //                  }
+    //              }
+    //          });
+    //      } else {
+    //          Debug.LogWarning ("GSM| old-password or new-password empty...");
+    //      }
+    //  }
 
     /// <summary>
     /// Registers the parent email.
@@ -909,9 +946,9 @@ public class GameSparksManager : MonoBehaviour
         if (IsValidEmail(parentEmail))
         {
             new GameSparks.Api.Requests.LogEventRequest().SetEventKey("submitParentEmail")
-				.SetEventAttribute("parent_email", parentEmail)
-				.SetDurable(true)
-				.Send((response) =>
+                .SetEventAttribute("parent_email", parentEmail)
+                .SetDurable(true)
+                .Send((response) =>
                 {
                     if (!response.HasErrors)
                     {
@@ -923,84 +960,118 @@ public class GameSparksManager : MonoBehaviour
                     }
                     else
                     {
-						if(onRequestFailed != null)
-						{
-							onRequestFailed(ProcessGSErrors(response.Errors));
-						}
+                        if (onRequestFailed != null)
+                        {
+                            onRequestFailed(ProcessGSErrors(response.Errors));
+                        }
                     }
                 });
         }
         else
         {
-			if(onRequestFailed != null)
-			{
-				onRequestFailed(ProcessGSErrors(new GSRequestData().AddString("@submitParentEmail", "invalid_email")));
-			}
+            if (onRequestFailed != null)
+            {
+                onRequestFailed(ProcessGSErrors(new GSRequestData().AddString("@submitParentEmail", "invalid_email")));
+            }
         }
     }
-	/// <summary>
-	/// retreives a list of parent email for this player
-	/// </summary>
-	public delegate void onGetParentEmailSuccess(ParentEmailStatus[] ParentEmailStatus);
 
-	/// <summary>
-	/// Gets the parent email status.
-	/// </summary>
-	/// <param name="onGetParentEmailSuccess">On get parent email success. callback receives a list of parent email details</param>
-	/// <param name="onRequestFailed">On request failed. callback, GameSparksError, enum</param>
-	public void GetParentEmailStatus(onGetParentEmailSuccess onGetParentEmailSuccess, onRequestFailed onRequestFailed)
-	{
-		Debug.Log("GSM| Fetching Parent Email Status...");
-		new GameSparks.Api.Requests.LogEventRequest().SetEventKey("getParentEmailStatus")
-			.Send((response) =>
-				{
-					if (!response.HasErrors)
-					{
-						Debug.Log("GSM| Found Email Status...");
-						if (onGetParentEmailSuccess != null)
-						{
-							List<ParentEmailStatus> parentEmailList = new List<ParentEmailStatus>();
-							foreach(GSData email in response.ScriptData.GetGSDataList("email_history")){
-								// not all emails have a verified date if they are not verified //
-								// therefore there are two constructors for this class to make sure there are //
-								// no null-exceptions //
-								if(email.GetNumber("verified_date") != null){
-									parentEmailList.Add(new ParentEmailStatus(email.GetString("email"), new DateTime(email.GetNumber("date_added").Value), email.GetString("status"), new DateTime(email.GetNumber("verified_date").Value)));
-								}else{
-									parentEmailList.Add(new ParentEmailStatus(email.GetString("email"), new DateTime(email.GetNumber("date_added").Value), email.GetString("status")));
-								}
-							}
-							onGetParentEmailSuccess(parentEmailList.ToArray());
-						}
-					}
-					else
-					{
-						if(onRequestFailed != null)
-						{
-							onRequestFailed(ProcessGSErrors(response.Errors));
-						}
-					}
-				});
-	}
+    /// <summary>
+    /// retreives a list of parent email for this player
+    /// </summary>
+    public delegate void onGetParentEmailSuccess(ParentEmailStatus[] ParentEmailStatus);
+
+    /// <summary>
+    /// Gets the parent email status.
+    /// </summary>
+    /// <param name="onGetParentEmailSuccess">On get parent email success. callback receives array of ParentEmailStatus objects</param>
+    /// <param name="onRequestFailed">On request failed. callback, GameSparksError, enum</param>
+    public void GetParentEmailStatus(onGetParentEmailSuccess onGetParentEmailSuccess, onRequestFailed onRequestFailed)
+    {
+        Debug.Log("GSM| Fetching Parent Email Status...");
+        new GameSparks.Api.Requests.LogEventRequest().SetEventKey("getParentEmailStatus")
+            .Send((response) =>
+            {
+                if (!response.HasErrors)
+                {
+                    Debug.Log("GSM| Found Email Status...");
+                    if (onGetParentEmailSuccess != null)
+                    {
+                        List<ParentEmailStatus> parentEmailList = new List<ParentEmailStatus>();
+                        foreach (GSData email in response.ScriptData.GetGSDataList("email_history"))
+                        {
+                            // not all emails have a verified date if they are not verified //
+                            // therefore there are two constructors for this class to make sure there are //
+                            // no null-exceptions //
+                            if (email.GetNumber("verified_date") != null)
+                            {
+                                parentEmailList.Add(new ParentEmailStatus(email.GetString("email"), new DateTime(email.GetNumber("date_added").Value), email.GetString("status"), new DateTime(email.GetNumber("verified_date").Value)));
+                            }
+                            else
+                            {
+                                parentEmailList.Add(new ParentEmailStatus(email.GetString("email"), new DateTime(email.GetNumber("date_added").Value), email.GetString("status")));
+                            }
+                        }
+                        onGetParentEmailSuccess(parentEmailList.ToArray());
+                    }
+                }
+                else
+                {
+                    if (onRequestFailed != null)
+                    {
+                        onRequestFailed(ProcessGSErrors(response.Errors));
+                    }
+                }
+            });
+    }
+
+    /// <summary>
+    /// Deletes the parent email history.
+    /// </summary>
+    /// <param name="onRequestSuccess">On request success.</param>
+    /// <param name="onRequestFailed">On request failed. GameSparksError - enum</param>
+    public void DeleteParentEmailHistory(onRequestSuccess onRequestSuccess, onRequestFailed onRequestFailed)
+    {
+        Debug.Log("GSM| Deleting Parent Email History...");
+        new GameSparks.Api.Requests.LogEventRequest().SetEventKey("deleteParentEmail")
+            .Send((response) =>
+                {
+                    if (!response.HasErrors)
+                    {
+                        if (onRequestSuccess != null)
+                        {
+                            onRequestSuccess();
+                        }
+                    }
+                    else
+                    {
+                        if (onRequestFailed != null)
+                        {
+                            onRequestFailed(ProcessGSErrors(response.Errors));
+                        }
+                    }
+                });
+    }
+
     #endregion
 
     #region System
 
-  	/// <summary>
-  	/// receives the server version for the current snapshot
-  	/// </summary>
-	public delegate void onGetServerVersion(string version);
+    /// <summary>
+    /// receives the server version for the current snapshot
+    /// </summary>
+    public delegate void onGetServerVersion(string version);
 
-	/// <summary>
-	/// Gets the server version.
-	/// </summary>
-	/// <param name="onGetServerVersion">On get server version. callback, string, server version</param>
-	/// <param name="onRequestFailed">On request failed. callback, GameSparksError, enum</param>
+    /// <summary>
+    /// Gets the server version.
+    /// </summary>
+    /// <param name="onGetServerVersion">On get server version. callback, string, server version</param>
+    /// <param name="onRequestFailed">On request failed. callback, GameSparksError, enum</param>
     public void GetServerVersion(onGetServerVersion onGetServerVersion, onRequestFailed onRequestFailed)
     {
         Debug.Log("GSM| Fetching Server Version...");
         new GameSparks.Api.Requests.LogEventRequest().SetEventKey("getServerVersion")
-			.Send((response) =>
+            .Send((response) =>
             {
                 if (!response.HasErrors)
                 {
@@ -1017,40 +1088,41 @@ public class GameSparksManager : MonoBehaviour
                 }
                 else
                 {
-					if(onRequestFailed != null)
-					{
-						onRequestFailed(ProcessGSErrors(response.Errors));
-					}
+                    if (onRequestFailed != null)
+                    {
+                        onRequestFailed(ProcessGSErrors(response.Errors));
+                    }
                 }
             });
     }
+
     #endregion
 
     #region Inbox System
 
-	/// <summary>
-	/// receives an array of inbox messages
-	/// </summary>
-	public delegate void onGetMessages(InboxMessage[] messages);
+    /// <summary>
+    /// receives an array of inbox messages
+    /// </summary>
+    public delegate void onGetMessages(InboxMessage[] messages);
 
-	/// <summary>
-	/// Gets all the message for this player and their characters
-	/// </summary>
-	/// <param name="character_id">Character ID.</param>
-	/// <param name="type">Type.</param>
-	/// <param name="offset">Offset.</param>
-	/// <param name="limit">Limit.</param>
-	/// <param name="onGetMessages">On get messages. callback, InboxMessage[]</param>
-	/// <param name="onRequestFailed">On request failed. callback, GameSparksError, enum</param>
+    /// <summary>
+    /// Gets all the message for this player and their characters
+    /// </summary>
+    /// <param name="character_id">Character ID.</param>
+    /// <param name="type">Type.</param>
+    /// <param name="offset">Offset.</param>
+    /// <param name="limit">Limit.</param>
+    /// <param name="onGetMessages">On get messages. callback, InboxMessage[]</param>
+    /// <param name="onRequestFailed">On request failed. callback, GameSparksError, enum</param>
     public void GetMessages(string character_id, string type, int offset, int limit, onGetMessages onGetMessages, onRequestFailed onRequestFailed)
     {
         Debug.Log("GSM| Fetching Messages For Character - " + character_id);
         new GameSparks.Api.Requests.LogEventRequest().SetEventKey("getMessages")
-			.SetEventAttribute("character_id", character_id)
-			.SetEventAttribute("type", type)
-			.SetEventAttribute("limit", limit)
-			.SetEventAttribute("offset", offset)
-			.Send((response) =>
+            .SetEventAttribute("character_id", character_id)
+            .SetEventAttribute("type", type)
+            .SetEventAttribute("limit", limit)
+            .SetEventAttribute("offset", offset)
+            .Send((response) =>
             {
                 if (!response.HasErrors)
                 {
@@ -1067,10 +1139,10 @@ public class GameSparksManager : MonoBehaviour
                 }
                 else
                 {
-					if(onRequestFailed != null)
-					{
-						onRequestFailed(ProcessGSErrors(response.Errors));
-					}
+                    if (onRequestFailed != null)
+                    {
+                        onRequestFailed(ProcessGSErrors(response.Errors));
+                    }
                 }
             });
     }
@@ -1088,13 +1160,13 @@ public class GameSparksManager : MonoBehaviour
     {
         Debug.Log("GSM| Sending Private Message To " + characterTo);
         new GameSparks.Api.Requests.LogEventRequest().SetEventKey("sendPrivateMessage")
-			.SetEventAttribute("header", header)
-			.SetEventAttribute("body", body)
-			.SetEventAttribute("payload", new GSRequestData())
-			.SetEventAttribute("character_id_to", characterTo)
-			.SetEventAttribute("character_id_from", characterFrom)
-			.SetDurable(true)
-			.Send((response) =>
+            .SetEventAttribute("header", header)
+            .SetEventAttribute("body", body)
+            .SetEventAttribute("payload", new GSRequestData())
+            .SetEventAttribute("character_id_to", characterTo)
+            .SetEventAttribute("character_id_from", characterFrom)
+            .SetDurable(true)
+            .Send((response) =>
             {
                 if (!response.HasErrors)
                 {
@@ -1106,34 +1178,34 @@ public class GameSparksManager : MonoBehaviour
                 }
                 else
                 {
-					if(onRequestFailed != null)
-					{
-						onRequestFailed(ProcessGSErrors(response.Errors));
-					}
+                    if (onRequestFailed != null)
+                    {
+                        onRequestFailed(ProcessGSErrors(response.Errors));
+                    }
                 }
             });
     }
-		
-	/// <summary>
-	/// Sends a private message to the character ID given.
-	/// </summary>
-	/// <param name="header">Header.</param>
-	/// <param name="body">Body.</param>
-	/// <param name="payload">Payload.</param>
-	/// <param name="characterTo">Character to.</param>
-	/// <param name="characterFrom">Character from.</param>
-	/// <param name="onRequestSuccess">On request success. callback</param>
-	/// <param name="onRequestFailed">On request failed. callback, GameSparksError, enum</param>
+
+    /// <summary>
+    /// Sends a private message to the character ID given.
+    /// </summary>
+    /// <param name="header">Header.</param>
+    /// <param name="body">Body.</param>
+    /// <param name="payload">Payload.</param>
+    /// <param name="characterTo">Character to.</param>
+    /// <param name="characterFrom">Character from.</param>
+    /// <param name="onRequestSuccess">On request success. callback</param>
+    /// <param name="onRequestFailed">On request failed. callback, GameSparksError, enum</param>
     public void SendPrivateMessage(string header, string body, GSRequestData payload, string characterTo, string characterFrom, onRequestSuccess onRequestSuccess, onRequestFailed onRequestFailed)
     {
         Debug.Log("GSM| Sending Private Message To " + characterTo);
         new GameSparks.Api.Requests.LogEventRequest().SetEventKey("sendPrivateMessage")
-			.SetEventAttribute("header", header)
-			.SetEventAttribute("body", body)
-			.SetEventAttribute("payload", payload)
-			.SetEventAttribute("character_id_to", characterTo)
-			.SetEventAttribute("character_id_from", characterFrom)
-			.Send((response) =>
+            .SetEventAttribute("header", header)
+            .SetEventAttribute("body", body)
+            .SetEventAttribute("payload", payload)
+            .SetEventAttribute("character_id_to", characterTo)
+            .SetEventAttribute("character_id_from", characterFrom)
+            .Send((response) =>
             {
                 if (!response.HasErrors)
                 {
@@ -1145,10 +1217,10 @@ public class GameSparksManager : MonoBehaviour
                 }
                 else
                 {
-					if(onRequestFailed != null)
-					{
-						onRequestFailed(ProcessGSErrors(response.Errors));
-					}
+                    if (onRequestFailed != null)
+                    {
+                        onRequestFailed(ProcessGSErrors(response.Errors));
+                    }
                 }
             });
     }
@@ -1163,8 +1235,8 @@ public class GameSparksManager : MonoBehaviour
     {
         Debug.Log("GSM| Deleting Message " + messageID);
         new GameSparks.Api.Requests.LogEventRequest().SetEventKey("deleteMessage")
-			.SetEventAttribute("message_id", messageID)
-			.Send((response) =>
+            .SetEventAttribute("message_id", messageID)
+            .Send((response) =>
             {
                 if (!response.HasErrors)
                 {
@@ -1176,10 +1248,10 @@ public class GameSparksManager : MonoBehaviour
                 }
                 else
                 {
-					if(onRequestFailed != null)
-					{
-						onRequestFailed(ProcessGSErrors(response.Errors));
-					}
+                    if (onRequestFailed != null)
+                    {
+                        onRequestFailed(ProcessGSErrors(response.Errors));
+                    }
                 }
             });
     }
@@ -1190,18 +1262,18 @@ public class GameSparksManager : MonoBehaviour
         // THIS IS YET TO BE IMPLEMENTED //
 
 
-//		Debug.Log ("GSM| Deleting Message "+messageID);
-//		new GameSparks.Api.Requests.LogEventRequest().SetEventKey("deleteMessage")
-//			.SetEventAttribute("message_id", messageID)
-//			.Send ((response) => {
-//				if (!response.HasErrors) {
-//					Debug.Log("GSM| Message Deleted....");
-//				} else {
-//					Debug.LogError("GSM| Message Not Deleted");
-//				}
-//			});
+//      Debug.Log ("GSM| Deleting Message "+messageID);
+//      new GameSparks.Api.Requests.LogEventRequest().SetEventKey("deleteMessage")
+//          .SetEventAttribute("message_id", messageID)
+//          .Send ((response) => {
+//              if (!response.HasErrors) {
+//                  Debug.Log("GSM| Message Deleted....");
+//              } else {
+//                  Debug.LogError("GSM| Message Not Deleted");
+//              }
+//          });
     }
-		
+
     #endregion
 
     #region Get Available Islands
@@ -1209,20 +1281,20 @@ public class GameSparksManager : MonoBehaviour
     /// <summary>
     /// receives array of islands
     /// </summary>
-	public delegate void onGetIslands(Island[] islands);
+    public delegate void onGetIslands(Island[] islands);
 
     /// <summary>
     /// Gets the available islands.
     /// </summary>
     /// <param name="character_id">Character identifier.</param>
     /// <param name="getIslands">Get islands. callback Island[]</param>
-	/// <param name="_callback">Callback. callback, GameSparksError, enum</param>
+    /// <param name="_callback">Callback. callback, GameSparksError, enum</param>
     public void GetAvailableIslands(string character_id, onGetIslands getIslands, onRequestFailed onRequestFailed)
     {
         Debug.Log("GSM| Fetching Available Islands...");
         new GameSparks.Api.Requests.LogEventRequest().SetEventKey("getAvailableIslands")
-			.SetEventAttribute("character_id", character_id)
-			.Send((response) =>
+            .SetEventAttribute("character_id", character_id)
+            .Send((response) =>
             {
                 if (!response.HasErrors)
                 {
@@ -1249,10 +1321,10 @@ public class GameSparksManager : MonoBehaviour
                 }
                 else
                 {
-					if(onRequestFailed != null)
-					{
-						onRequestFailed(ProcessGSErrors(response.Errors));
-					}
+                    if (onRequestFailed != null)
+                    {
+                        onRequestFailed(ProcessGSErrors(response.Errors));
+                    }
                 }
             });
     }
@@ -1260,23 +1332,23 @@ public class GameSparksManager : MonoBehaviour
     /// <summary>
     /// receives the id of the island visited
     /// </summary>
-	public delegate void onIslandVisited(int island_id);
+    public delegate void onIslandVisited(int island_id);
 
-	/// <summary>
-	/// Registers the Player-character having visited the island.
-	/// </summary>
-	/// <param name="character_id">Character ID</param>
-	/// <param name="island_id">Island ID</param>
-	/// <param name="onIslandVisited">On island visited. callback, receives the id of the island visited</param>
-	/// <param name="onRequestFailed">On request failed. callback, GameSparksError, enum</param>
+    /// <summary>
+    /// Registers the Player-character having visited the island.
+    /// </summary>
+    /// <param name="character_id">Character ID</param>
+    /// <param name="island_id">Island ID</param>
+    /// <param name="onIslandVisited">On island visited. callback, receives the id of the island visited</param>
+    /// <param name="onRequestFailed">On request failed. callback, GameSparksError, enum</param>
     public void VisitIsland(string character_id, int island_id, onIslandVisited onIslandVisited, onRequestFailed onRequestFailed)
     {
         Debug.Log("GSM|  Visiting Island...");
         new GameSparks.Api.Requests.LogEventRequest().SetEventKey("visitIsland")
-			.SetEventAttribute("character_id", character_id)
-			.SetEventAttribute("island_id", island_id)
-			.SetDurable(true)
-			.Send((response) =>
+            .SetEventAttribute("character_id", character_id)
+            .SetEventAttribute("island_id", island_id)
+            .SetDurable(true)
+            .Send((response) =>
             {
                 if (!response.HasErrors)
                 {
@@ -1288,29 +1360,29 @@ public class GameSparksManager : MonoBehaviour
                 }
                 else
                 {
-					if(onRequestFailed != null)
-					{
-						onRequestFailed(ProcessGSErrors(response.Errors));
-					}
+                    if (onRequestFailed != null)
+                    {
+                        onRequestFailed(ProcessGSErrors(response.Errors));
+                    }
                 }
             });
     }
 
-	/// <summary>
-	/// Leaves the island.
-	/// </summary>
-	/// <param name="character_id">Character ID</param>
-	/// <param name="island_id">Island ID</param>
-	/// <param name="onRequestSuccess">On request success. callback </param>
-	/// <param name="onRequestFailed">On request failed. callback, GameSparksError, enum</param>
+    /// <summary>
+    /// Leaves the island.
+    /// </summary>
+    /// <param name="character_id">Character ID</param>
+    /// <param name="island_id">Island ID</param>
+    /// <param name="onRequestSuccess">On request success. callback </param>
+    /// <param name="onRequestFailed">On request failed. callback, GameSparksError, enum</param>
     public void LeaveIsland(string character_id, int island_id, onRequestSuccess onRequestSuccess, onRequestFailed onRequestFailed)
     {
         Debug.Log("GSM|  Leaving Island...");
         new GameSparks.Api.Requests.LogEventRequest().SetEventKey("leaveIsland")
-			.SetEventAttribute("character_id", character_id)
-			.SetEventAttribute("island_id", island_id)
-			.SetDurable(true)
-			.Send((response) =>
+            .SetEventAttribute("character_id", character_id)
+            .SetEventAttribute("island_id", island_id)
+            .SetDurable(true)
+            .Send((response) =>
             {
                 if (!response.HasErrors)
                 {
@@ -1322,29 +1394,29 @@ public class GameSparksManager : MonoBehaviour
                 }
                 else
                 {
-					if(onRequestFailed != null)
-					{
-						onRequestFailed(ProcessGSErrors(response.Errors));
-					}
+                    if (onRequestFailed != null)
+                    {
+                        onRequestFailed(ProcessGSErrors(response.Errors));
+                    }
                 }
             });
     }
 
-	/// <summary>
-	/// Marks the player-character as having Completed the island.
-	/// </summary>
-	/// <param name="character_id">Character ID.</param>
-	/// <param name="island_id">Island ID.</param>
-	/// <param name="onRequestSuccess">On request success. callback</param>
-	/// <param name="onRequestFailed">On request failed. callback, GameSparksError, enum</param>
+    /// <summary>
+    /// Marks the player-character as having Completed the island.
+    /// </summary>
+    /// <param name="character_id">Character ID.</param>
+    /// <param name="island_id">Island ID.</param>
+    /// <param name="onRequestSuccess">On request success. callback</param>
+    /// <param name="onRequestFailed">On request failed. callback, GameSparksError, enum</param>
     public void CompleteIsland(string character_id, int island_id, onRequestSuccess onRequestSuccess, onRequestFailed onRequestFailed)
     {
         Debug.Log("GSM|  Completing Island...");
         new GameSparks.Api.Requests.LogEventRequest().SetEventKey("completeIsland")
-			.SetEventAttribute("character_id", character_id)
-			.SetEventAttribute("island_id", island_id)
-			.SetDurable(true)
-			.Send((response) =>
+            .SetEventAttribute("character_id", character_id)
+            .SetEventAttribute("island_id", island_id)
+            .SetDurable(true)
+            .Send((response) =>
             {
                 if (!response.HasErrors)
                 {
@@ -1356,10 +1428,10 @@ public class GameSparksManager : MonoBehaviour
                 }
                 else
                 {
-					if(onRequestFailed != null)
-					{
-						onRequestFailed(ProcessGSErrors(response.Errors));
-					}
+                    if (onRequestFailed != null)
+                    {
+                        onRequestFailed(ProcessGSErrors(response.Errors));
+                    }
                 }
             });
     }
@@ -1390,10 +1462,10 @@ public class GameSparksManager : MonoBehaviour
             outfitData.AddString("FaceMark", outfit.face_mark);
             outfitData.AddString("Helmet", outfit.helmet);
             new GameSparks.Api.Requests.LogEventRequest().SetEventKey("setOutfit")
-				.SetEventAttribute("character_id", character_id)
-				.SetEventAttribute("outfit", outfitData)
-				.SetDurable(true)
-				.Send((response) =>
+                .SetEventAttribute("character_id", character_id)
+                .SetEventAttribute("outfit", outfitData)
+                .SetDurable(true)
+                .Send((response) =>
                 {
                     if (!response.HasErrors)
                     {
@@ -1405,10 +1477,10 @@ public class GameSparksManager : MonoBehaviour
                     }
                     else
                     {
-						if(onRequestFailed != null)
-						{
-							onRequestFailed(ProcessGSErrors(response.Errors));
-						}
+                        if (onRequestFailed != null)
+                        {
+                            onRequestFailed(ProcessGSErrors(response.Errors));
+                        }
                     }
                 });
 
@@ -1420,15 +1492,15 @@ public class GameSparksManager : MonoBehaviour
     }
 
 
-	public delegate void onGetOutfit(Outfit outfit);
+    public delegate void onGetOutfit(Outfit outfit);
 
   
     public void GetOutfit(string character_id, onGetOutfit onGetOutfit, onRequestFailed onRequestFailed)
     {
         Debug.Log("GMS| Fetching Outfit...");
         new GameSparks.Api.Requests.LogEventRequest().SetEventKey("getOutfit")
-				.SetEventAttribute("character_id", character_id)
-				.Send((response) =>
+                .SetEventAttribute("character_id", character_id)
+                .Send((response) =>
             {
                 if (!response.HasErrors)
                 {
@@ -1440,10 +1512,10 @@ public class GameSparksManager : MonoBehaviour
                 }
                 else
                 {
-					if(onRequestFailed != null)
-					{
-						onRequestFailed(ProcessGSErrors(response.Errors));
-					}
+                    if (onRequestFailed != null)
+                    {
+                        onRequestFailed(ProcessGSErrors(response.Errors));
+                    }
                 }
             });
     }
@@ -1451,7 +1523,7 @@ public class GameSparksManager : MonoBehaviour
     /// <summary>
     /// returns the adornment
     /// </summary>
-	public delegate void onGetAdornment(Adornment adornment);
+    public delegate void onGetAdornment(Adornment adornment);
 
     /// <summary>
     /// Gets the adornment details for the ID requested
@@ -1463,8 +1535,8 @@ public class GameSparksManager : MonoBehaviour
     {
         Debug.Log("GMS| Fetching Adornment...");
         new GameSparks.Api.Requests.LogEventRequest().SetEventKey("getAdornment")
-			.SetEventAttribute("adornment_id", adornment_id)
-			.Send((response) =>
+            .SetEventAttribute("adornment_id", adornment_id)
+            .Send((response) =>
             {
                 if (!response.HasErrors)
                 {
@@ -1481,10 +1553,10 @@ public class GameSparksManager : MonoBehaviour
                 }
                 else
                 {
-					if(onRequestFailed != null)
-					{
-						onRequestFailed(ProcessGSErrors(response.Errors));
-					}
+                    if (onRequestFailed != null)
+                    {
+                        onRequestFailed(ProcessGSErrors(response.Errors));
+                    }
                 }
             });
     }
@@ -1492,7 +1564,7 @@ public class GameSparksManager : MonoBehaviour
     /// <summary>
     /// returns an array of adornments
     /// </summary>
-	public delegate void onGetAdornments(Adornment[] adornments);
+    public delegate void onGetAdornments(Adornment[] adornments);
 
     /// <summary>
     /// Gets the adornments.
@@ -1508,8 +1580,8 @@ public class GameSparksManager : MonoBehaviour
             GSRequestData adList = new GSRequestData();
             adList.AddNumberList("adornment_ids", adornment_ids);
             new GameSparks.Api.Requests.LogEventRequest().SetEventKey("getAdornments")
-				.SetEventAttribute("adornment_ids", adList)
-				.Send((response) =>
+                .SetEventAttribute("adornment_ids", adList)
+                .Send((response) =>
                 {
                     if (!response.HasErrors)
                     {
@@ -1531,10 +1603,10 @@ public class GameSparksManager : MonoBehaviour
                     }
                     else
                     {
-						if(onRequestFailed != null)
-						{
-							onRequestFailed(ProcessGSErrors(response.Errors));
-						}
+                        if (onRequestFailed != null)
+                        {
+                            onRequestFailed(ProcessGSErrors(response.Errors));
+                        }
                     }
                 });
         }
@@ -1547,7 +1619,7 @@ public class GameSparksManager : MonoBehaviour
     /// <summary>
     /// returns true or false if the adornment is available
     /// </summary>
-	public delegate void isAdornmentAvailable(bool isAvailable);
+    public delegate void isAdornmentAvailable(bool isAvailable);
 
     /// <summary>
     /// Checks if the adornmnet is available
@@ -1560,9 +1632,9 @@ public class GameSparksManager : MonoBehaviour
     {
         Debug.Log("GMS| Checking is Adornment is Available...");
         new GameSparks.Api.Requests.LogEventRequest().SetEventKey("isAdornmentAvailable")
-			.SetEventAttribute("character_id", character_id)
-			.SetEventAttribute("adornment_id", adornment_id)
-			.Send((response) =>
+            .SetEventAttribute("character_id", character_id)
+            .SetEventAttribute("adornment_id", adornment_id)
+            .Send((response) =>
             {
                 if (!response.HasErrors)
                 {
@@ -1574,10 +1646,10 @@ public class GameSparksManager : MonoBehaviour
                 }
                 else
                 {
-					if(onRequestFailed != null)
-					{
-						onRequestFailed(ProcessGSErrors(response.Errors));
-					}
+                    if (onRequestFailed != null)
+                    {
+                        onRequestFailed(ProcessGSErrors(response.Errors));
+                    }
                 }
             });
     }
@@ -1585,7 +1657,7 @@ public class GameSparksManager : MonoBehaviour
     /// <summary>
     /// return the costume ID
     /// </summary>
-	public delegate void onSetFixedCostume(int costume_id);
+    public delegate void onSetFixedCostume(int costume_id);
 
     /// <summary>
     /// Sets the fixed costume give the out-fit ID
@@ -1598,10 +1670,10 @@ public class GameSparksManager : MonoBehaviour
     {
         Debug.Log("GMS| Setting Fixed Costume...");
         new GameSparks.Api.Requests.LogEventRequest().SetEventKey("setFixedCostume")
-			.SetEventAttribute("character_id", character_id)
-			.SetEventAttribute("outfit_id", outfit_id)
-			.SetDurable(true)
-			.Send((response) =>
+            .SetEventAttribute("character_id", character_id)
+            .SetEventAttribute("outfit_id", outfit_id)
+            .SetDurable(true)
+            .Send((response) =>
             {
                 if (!response.HasErrors)
                 {
@@ -1613,10 +1685,10 @@ public class GameSparksManager : MonoBehaviour
                 }
                 else
                 {
-					if(onRequestFailed != null)
-					{
-						onRequestFailed(ProcessGSErrors(response.Errors));
-					}
+                    if (onRequestFailed != null)
+                    {
+                        onRequestFailed(ProcessGSErrors(response.Errors));
+                    }
                 }
             });
     }
@@ -1624,157 +1696,157 @@ public class GameSparksManager : MonoBehaviour
     #endregion
 
 
-	/// <summary>
-	/// Processes all GameSparks error to get the correct error-string root and parse it to an int for checking
-	/// </summary>
-	/// <returns>GameSparksError, enum</returns>
-	/// <param name="error">GSData Error response</param>
-	public GameSparksError ProcessGSErrors(GSData error)
-	{
-		Debug.LogWarning("GSM| Error: " + error.JSON);
-		if (error.GetString("@authentication") != null)
-		{
-			return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetString("@authentication"));
-		}
-		else if(error.GetString("error") != null && error.GetString("error") == "timeout")
-		{
-			// timeout will take 10sec, after which the socket will be closed //
-			// this is a default function of the GameSparks SDK and cannot be modified, though the duration //
-			// of the timeout can be changed //
-			return (GameSparksError)Enum.Parse(typeof(GameSparksError), "request_timeout");
-		}
-		else if (error.GetGSData("error") != null && error.GetGSData("error").GetString("@removeItem") != null)
-		{
-			return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetGSData("error").GetString("@removeItem"));
-		}
-		else if (error.GetGSData("error") != null && error.GetGSData("error").GetString("@pickUpItem") != null)
-		{
-			return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetGSData("error").GetString("@pickUpItem"));
-		}
-		else if (error.GetGSData("error") != null && error.GetGSData("error").GetString("@equipItem") != null)
-		{
-			return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetGSData("error").GetString("@equipItem"));
-		}
-		else  if (error.GetString("@useItem") != null)
-		{
-			return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetString("@useItem"));
-		}
-		else if (error.GetString("@getInventory") != null)
-		{
-			return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetString("@getInventory"));
-		}
-		else if (error.GetString("@getSceneState") != null)
-		{
-			return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetString("@getSceneState"));
-		}
-		else if (error.GetString("@setSceneState") != null)
-		{
-			return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetString("@setSceneState"));
-		}
-		else if (error.GetString("@enterScene") != null)
-		{
-			return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetString("@enterScene"));
-		}
-		else if ( error.GetString("@enterScene") != null)
-		{
-			return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetString("@enterScene"));
-		}
-		// CHARCTER //
-		else if (error.GetString("@giveXp") != null)
-		{
-			return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetString("@giveXp"));
-		}
-		else  if ( error.GetString("@getLevelAndExperience") != null)
-		{
-			return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetString("@getLevelAndExperience"));
-		}
-		else if (error.GetString("@getCharacter") != null)
-		{
-			return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetString("@getCharacter"));
-		}
-		else  if (error.GetString("@createCharacter") != null)
-		{
-			return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetString("@createCharacter"));
-		}
-		// PLAYER & SYSTEM //
-		else if (error.GetString("@sendResetPasswordEmail") != null)
-		{
-			return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetString("@sendResetPasswordEmail"));
-		}
-		else if(error.GetString("@submitParentEmail") != null)
-		{
-			return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetString("@submitParentEmail"));
-		}
-		else if (error.GetString("@getParentEmailStatus") != null)
-		{
-			return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetString("@getParentEmailStatus"));
-		}
-		else  if (error.GetString("@getServerVersion") != null)
-		{
-			return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetString("@getServerVersion"));
-		}
-		// INBOX SYSTEM
-		else if (error.GetString("@getMessages") != null)
-		{
-			return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetString("@getMessages"));
-		}
-		else if (error.GetString("@sendPrivateMessage") != null)
-		{
-			return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetString("@sendPrivateMessage"));
-		}
-		else if (error.GetString("@sendPrivateMessage") != null)
-		{
-			return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetString("@sendPrivateMessage"));
-		}
-		else if (error.GetString("@deleteMessage") != null)
-		{
-			return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetString("@deleteMessage"));
-		}
-		// ISLANDS //
-		else if (error.GetString("@getAvailableIslands") != null)
-		{
-			return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetString("@getAvailableIslands"));
-		}
-		else if (error.GetString("@visitIsland") != null)
-		{
-			return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetString("@visitIsland"));
-		}
-		else if (error.GetString("@leaveIsland") != null)
-		{
-			return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetString("@leaveIsland"));
-		}
-		else if (error.GetString("@completeIsland") != null)
-		{
-			return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetString("@completeIsland"));
-		}
-		// CHARACTER OUTFITS //
-		else if (error.GetString("@setOutfit") != null)
-		{
-			return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetString("@setOutfit"));
-		}
-		else  if (error.GetString("@getOutfit") != null)
-		{
-			return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetString("@getOutfit"));
-		}
-		else if (error.GetString("@getAdornment") != null)
-		{
-			return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetString("@getAdornment"));
-		}
-		else  if (error.GetString("@getAdornment") != null)
-		{
-			return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetString("@getAdornment"));
-		}
-		else  if (error.GetString("@isAdornmentAvailable") != null)
-		{
-			return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetString("@isAdornmentAvailable"));
-		}
-		else  if (error.GetString("@setFixedCostume") != null)
-		{
-			return (GameSparksError)Enum.Parse(typeof(GameSparksError),error.GetString("@setFixedCostume"));
-		}
+    /// <summary>
+    /// Processes all GameSparks error to get the correct error-string root and parse it to an int for checking
+    /// </summary>
+    /// <returns>GameSparksError, enum</returns>
+    /// <param name="error">GSData Error response</param>
+    public GameSparksError ProcessGSErrors(GSData error)
+    {
+        Debug.LogWarning("GSM| Error: " + error.JSON);
+        if (error.GetString("@authentication") != null)
+        {
+            return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetString("@authentication"));
+        }
+        else if (error.GetString("error") != null && error.GetString("error") == "timeout")
+        {
+            // timeout will take 10sec, after which the socket will be closed //
+            // this is a default function of the GameSparks SDK and cannot be modified, though the duration //
+            // of the timeout can be changed //
+            return (GameSparksError)Enum.Parse(typeof(GameSparksError), "request_timeout");
+        }
+        else if (error.GetGSData("error") != null && error.GetGSData("error").GetString("@removeItem") != null)
+        {
+            return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetGSData("error").GetString("@removeItem"));
+        }
+        else if (error.GetGSData("error") != null && error.GetGSData("error").GetString("@pickUpItem") != null)
+        {
+            return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetGSData("error").GetString("@pickUpItem"));
+        }
+        else if (error.GetGSData("error") != null && error.GetGSData("error").GetString("@equipItem") != null)
+        {
+            return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetGSData("error").GetString("@equipItem"));
+        }
+        else if (error.GetString("@useItem") != null)
+        {
+            return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetString("@useItem"));
+        }
+        else if (error.GetString("@getInventory") != null)
+        {
+            return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetString("@getInventory"));
+        }
+        else if (error.GetString("@getSceneState") != null)
+        {
+            return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetString("@getSceneState"));
+        }
+        else if (error.GetString("@setSceneState") != null)
+        {
+            return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetString("@setSceneState"));
+        }
+        else if (error.GetString("@enterScene") != null)
+        {
+            return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetString("@enterScene"));
+        }
+        else if (error.GetString("@enterScene") != null)
+        {
+            return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetString("@enterScene"));
+        }
+        // CHARCTER //
+        else if (error.GetString("@giveXp") != null)
+        {
+            return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetString("@giveXp"));
+        }
+        else if (error.GetString("@getLevelAndExperience") != null)
+        {
+            return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetString("@getLevelAndExperience"));
+        }
+        else if (error.GetString("@getCharacter") != null)
+        {
+            return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetString("@getCharacter"));
+        }
+        else if (error.GetString("@createCharacter") != null)
+        {
+            return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetString("@createCharacter"));
+        }
+        // PLAYER & SYSTEM //
+        else if (error.GetString("@passReset") != null)
+        {
+            return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetString("@passReset"));
+        }
+        else if (error.GetString("@submitParentEmail") != null)
+        {
+            return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetString("@submitParentEmail"));
+        }
+        else if (error.GetString("@getParentEmailStatus") != null)
+        {
+            return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetString("@getParentEmailStatus"));
+        }
+        else if (error.GetString("@getServerVersion") != null)
+        {
+            return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetString("@getServerVersion"));
+        }
+        // INBOX SYSTEM
+        else if (error.GetString("@getMessages") != null)
+        {
+            return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetString("@getMessages"));
+        }
+        else if (error.GetString("@sendPrivateMessage") != null)
+        {
+            return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetString("@sendPrivateMessage"));
+        }
+        else if (error.GetString("@sendPrivateMessage") != null)
+        {
+            return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetString("@sendPrivateMessage"));
+        }
+        else if (error.GetString("@deleteMessage") != null)
+        {
+            return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetString("@deleteMessage"));
+        }
+        // ISLANDS //
+        else if (error.GetString("@getAvailableIslands") != null)
+        {
+            return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetString("@getAvailableIslands"));
+        }
+        else if (error.GetString("@visitIsland") != null)
+        {
+            return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetString("@visitIsland"));
+        }
+        else if (error.GetString("@leaveIsland") != null)
+        {
+            return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetString("@leaveIsland"));
+        }
+        else if (error.GetString("@completeIsland") != null)
+        {
+            return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetString("@completeIsland"));
+        }
+        // CHARACTER OUTFITS //
+        else if (error.GetString("@setOutfit") != null)
+        {
+            return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetString("@setOutfit"));
+        }
+        else if (error.GetString("@getOutfit") != null)
+        {
+            return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetString("@getOutfit"));
+        }
+        else if (error.GetString("@getAdornment") != null)
+        {
+            return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetString("@getAdornment"));
+        }
+        else if (error.GetString("@getAdornment") != null)
+        {
+            return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetString("@getAdornment"));
+        }
+        else if (error.GetString("@isAdornmentAvailable") != null)
+        {
+            return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetString("@isAdornmentAvailable"));
+        }
+        else if (error.GetString("@setFixedCostume") != null)
+        {
+            return (GameSparksError)Enum.Parse(typeof(GameSparksError), error.GetString("@setFixedCostume"));
+        }
 
-		return (GameSparksError)Enum.Parse(typeof(GameSparksError), "request_failed");
-	}
+        return (GameSparksError)Enum.Parse(typeof(GameSparksError), "request_failed");
+    }
 
     /// <summary>
     /// USes a regex to check the email is valid before sending it to the server.
@@ -1873,38 +1945,39 @@ namespace GameSparks.Api.Messages
 }
 
 
-public enum GameSparksError{
+public enum GameSparksError
+{
 
-	invalid_username,
-	invalid_password,
-	request_failed,
-	request_timeout,
-	invalid_item_id,
-	username_taken,
-	no_character_record,
-	player_has_item,
-	invalid_scene_id,
-	item_not_found_in_scene,
-	min_level_not_met,
-	max_level_exceeded,
-	invalid_email,
-	email_already_validated,
-	character_name_already_taken,
-	invalid_gender,
-	invalid_adornment_id,
-	invalid_char_id,
-	invalid_character_id,
-	invalid_outfit_id,
-	dberror,
-	message_not_deleted,
-	invalid_island_id,
-	no_email,
-	no_email_history,
-	no_scene_data,
-	no_player_scene_record,
-	no_player_record,
-	no_inventory,
-	no_level_definition,
-	no_email_registered,
+    invalid_username,
+    invalid_password,
+    request_failed,
+    request_timeout,
+    invalid_item_id,
+    username_taken,
+    no_character_record,
+    player_has_item,
+    invalid_scene_id,
+    item_not_found_in_scene,
+    min_level_not_met,
+    max_level_exceeded,
+    invalid_email,
+    email_already_validated,
+    character_name_already_taken,
+    invalid_gender,
+    invalid_adornment_id,
+    invalid_char_id,
+    invalid_character_id,
+    invalid_outfit_id,
+    dberror,
+    message_not_deleted,
+    invalid_island_id,
+    no_email,
+    no_email_history,
+    no_scene_data,
+    no_player_scene_record,
+    no_player_record,
+    no_inventory,
+    no_level_definition,
+    no_email_registered,
 
 }

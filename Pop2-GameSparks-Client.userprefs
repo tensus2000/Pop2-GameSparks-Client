@@ -1,11 +1,10 @@
 ﻿<Properties StartupItem="Assembly-CSharp.csproj">
   <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" PreferredExecutionTarget="Unity.Instance.Unity Editor" />
-  <MonoDevelop.Ide.Workbench ActiveDocument="Assets\Scripts\GameSparksManager.cs">
+  <MonoDevelop.Ide.Workbench ActiveDocument="Assets/Scripts/GameSparksManager.cs">
     <Files>
-      <File FileName="Assets\Scripts\GameSparksManager.cs" Line="638" Column="39" />
-      <File FileName="Assets\Scripts\UIManager.cs" Line="1" Column="1" />
-      <File FileName="Assets\Scripts\MockClasses.cs" Line="1" Column="1" />
-      <File FileName="Assets\GameSparks\Platforms\PlatformBase.cs" Line="1" Column="1" />
+      <File FileName="Assets/Scripts/GameSparksManager.cs" Line="1031" Column="66" />
+      <File FileName="Assets/Scripts/MockClasses.cs" Line="109" Column="28" />
+      <File FileName="Assets/Scripts/UIManager.cs" Line="358" Column="26" />
     </Files>
   </MonoDevelop.Ide.Workbench>
   <MonoDevelop.Ide.DebuggingService.Breakpoints>

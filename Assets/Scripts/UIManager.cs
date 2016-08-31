@@ -22,9 +22,9 @@ public class UIManager : MonoBehaviour {
 	private Queue<string> myLogQueue = new Queue<string>();
 	private string myLog;
 
-	public GameObject items, scenes, menu, playerDetails, inbox, islands, characters, outfits;
+	public GameObject items, scenes, menu, playerDetails, inbox, islands, characters, outfits, non_auth;
 
-	public Button goto_sceneState_bttn, goto_characters_bttn, goto_outfits_bttn, goto_islands_bttn, goto_chars_bttn, goto_items_bttn, goto_player_bttn, goTo_player_inbox, goTo_menu_bttn1, goTo_menu_bttn2, goTo_menu_bttn3, goTo_menu_bttn4, goTo_menu_bttn5, goTo_menu_bttn6, goTo_menu_bttn7;
+	public Button goto_nonAuth_bttn, goto_sceneState_bttn, goto_characters_bttn, goto_outfits_bttn, goto_islands_bttn, goto_chars_bttn, goto_items_bttn, goto_player_bttn, goTo_player_inbox, goTo_menu_bttn1, goTo_menu_bttn2, goTo_menu_bttn3, goTo_menu_bttn4, goTo_menu_bttn5, goTo_menu_bttn6, goTo_menu_bttn7, goTo_menu_bttn8;
 
 	public Button clearLog_bttn;
 	public InputField auth_password_input, auth_username_txt;
@@ -38,7 +38,7 @@ public class UIManager : MonoBehaviour {
 
 	public GameObject blockout_panel;
 
-	public Button parent_email_bttn, get_parent_emai_bttn;
+	public Button parent_email_bttn, get_parent_emai_bttn, delete_parent_email_bttn;
 	public InputField parent_email_input;
 
 	public Button send_private_message_bttn;
@@ -71,7 +71,7 @@ public class UIManager : MonoBehaviour {
 	public InputField hair_col, skin_col, shirt, pants, hair, helmet, faceMark; 
 
 	public Button reset_email_bttn;
-	public InputField reset_email_input;
+	public InputField username_password_reset;
 
 	public Button get_char_names_Bttn;
 	public Text get_char_names_output;
@@ -146,7 +146,11 @@ public class UIManager : MonoBehaviour {
 			Debug.Log ("Selected Outfits Options...");
 			BringPanelForward (outfits);
 		});
-		goTo_menu_bttn2.onClick = goTo_menu_bttn3.onClick = goTo_menu_bttn4.onClick = goTo_menu_bttn5.onClick = goTo_menu_bttn6.onClick = goTo_menu_bttn7.onClick = goTo_menu_bttn1.onClick;
+        goto_nonAuth_bttn.onClick.AddListener (() => {
+            Debug.Log ("Selected NonAuth Options...");
+            BringPanelForward (non_auth);
+        });
+        goTo_menu_bttn2.onClick = goTo_menu_bttn3.onClick = goTo_menu_bttn4.onClick = goTo_menu_bttn5.onClick = goTo_menu_bttn8.onClick = goTo_menu_bttn6.onClick = goTo_menu_bttn7.onClick = goTo_menu_bttn1.onClick;
 		#endregion
 
 		#region AUTHENTICATION & REGISTRATION EXAMPLES
@@ -167,7 +171,7 @@ public class UIManager : MonoBehaviour {
 
 				// now we can check if the player has a parent email registered or not //
 				Debug.LogWarning("Player Has Parent Email: "+_authResponse.hasParentEmail);
-				Debug.LogWarning("Player Was Pop1 User: "+_authResponse.isPop1Player);
+				
 
 				server_version_txt.text = "Server Version: Requesting....";
 				GameSparksManager.Instance ().GetServerVersion ((_version) => {
@@ -176,8 +180,9 @@ public class UIManager : MonoBehaviour {
 				}, (_error) => {
 					Debug.LogError("UIM| "+_error.ToString());
 				});
-			}, (_error) => {
-				Debug.LogError("UIM| "+_error.ToString());
+            }, (_error, _isPop1User) => {
+                Debug.LogError("UIM| "+_error);
+                Debug.LogWarning("Player Was Pop1 User: "+_isPop1User);
 			});
 		});
 
@@ -341,13 +346,23 @@ public class UIManager : MonoBehaviour {
 
 		reset_email_bttn.onClick.AddListener (() => {
 			Debug.Log ("UIM| Clicked On Send Password Reset Button...");
-			GameSparksManager.Instance ().SendResetPasswordEmail (() => {
+            GameSparksManager.Instance ().SendResetPasswordEmail (username_password_reset.text,  () => {
 				// parent email pending validation	
 				Debug.Log ("UIM| Email Sent...");
 			}, (_error) => {
 				Debug.LogError("UIM| "+_error.ToString());
 			});
 		});
+
+        delete_parent_email_bttn.onClick.AddListener (() => {
+            Debug.Log ("UIM| Clicked On Delete Password Button...");
+            GameSparksManager.Instance ().DeleteParentEmailHistory (() => {
+                Debug.Log ("UIM| Email History Deleted...");
+            }, (_error) => {
+                Debug.LogError("UIM| "+_error.ToString());
+            });
+        });
+    
 		#endregion
 
 		#region INBOX SYSTEM EXAMPLES
