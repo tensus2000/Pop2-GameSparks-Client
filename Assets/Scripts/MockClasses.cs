@@ -4,8 +4,46 @@ using GameSparks.Core;
 using System;
 
 
+public class Scene
+{
+    int scene_id, island_id;
+    string asset_bundle;
+    Vector2 start_location;
+    Connection[] connections;
+
+    public Scene(int scene_id, int island_id,string asset_bundle,Vector2 start_location, Connection[] connections)
+    {
+        this.scene_id = scene_id;
+        this.island_id = island_id;
+        this.asset_bundle = asset_bundle;
+        this.start_location = start_location;
+        this.connections = connections;
+    }
+
+    public class Connection
+    {
+        int scene_id;
+        Vector2 start_location;
+
+        public Connection(int scene_id, Vector2 start_location)
+        {
+            this.scene_id = scene_id;
+            this.start_location = start_location;
+        }
+
+        public void Print()
+        {
+            Debug.Log("ID:"+scene_id+", Start Location"+start_location);
+        }
+    }
+   
+    public void Print()
+    {
+        Debug.Log("ID:"+scene_id+", Island ID:"+island_id+", Asset Bundle:"+asset_bundle+", Start Location"+start_location+", Connections:"+connections.Length);
+    }
 
 
+}
 
 
 public class AuthResponse
@@ -26,6 +64,7 @@ public class AuthResponse
         Debug.Log("Last Char:" + lastCharacterID + ", Characters:" + characterIDs.Length + ", hasParentEmail:" + hasParentEmail);
     }
 }
+
 
 
 public class ParentEmailStatus

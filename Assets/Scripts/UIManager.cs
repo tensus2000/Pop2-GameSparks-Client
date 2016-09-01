@@ -22,9 +22,9 @@ public class UIManager : MonoBehaviour {
 	private Queue<string> myLogQueue = new Queue<string>();
 	private string myLog;
 
-	public GameObject items, scenes, menu, playerDetails, inbox, islands, characters, outfits, non_auth;
+	public GameObject items, scenes, scene_states, menu, playerDetails, inbox, islands, characters, outfits, non_auth;
 
-	public Button goto_nonAuth_bttn, goto_sceneState_bttn, goto_characters_bttn, goto_outfits_bttn, goto_islands_bttn, goto_chars_bttn, goto_items_bttn, goto_player_bttn, goTo_player_inbox, goTo_menu_bttn1, goTo_menu_bttn2, goTo_menu_bttn3, goTo_menu_bttn4, goTo_menu_bttn5, goTo_menu_bttn6, goTo_menu_bttn7, goTo_menu_bttn8;
+    public Button goto_nonAuth_bttn, goto_scenes_bttn, goto_sceneState_bttn, goto_characters_bttn, goto_outfits_bttn, goto_islands_bttn, goto_chars_bttn, goto_items_bttn, goto_player_bttn, goTo_player_inbox, goTo_menu_bttn1, goTo_menu_bttn2, goTo_menu_bttn3, goTo_menu_bttn4, goTo_menu_bttn5, goTo_menu_bttn6, goTo_menu_bttn7, goTo_menu_bttn8, goTo_menu_bttn9;
 
 	public Button clearLog_bttn;
 	public InputField auth_password_input, auth_username_txt;
@@ -66,7 +66,7 @@ public class UIManager : MonoBehaviour {
 	public InputField grantXp_field;
 	public Text xpText, levelText;
 
-	public Button set_fixed_costume_bttn, get_adornments_bttn, is_adornments_available_bttn, get_adornment_bttn, get_outfit_bttn, set_outfit_bttn;
+	public Button set_fixed_costume_bttn, is_adornments_available_bttn, get_adornment_bttn, get_outfit_bttn, set_outfit_bttn;
 	public InputField check_adornment_id, fixed_costume_id;
 	public InputField hair_col, skin_col, shirt, pants, hair, helmet, faceMark; 
 
@@ -76,6 +76,9 @@ public class UIManager : MonoBehaviour {
 	public Button get_char_names_Bttn;
 	public Text get_char_names_output;
 	public InputField names_count;
+
+    public Button get_scenes_bttn;
+    public InputField get_scenes_island_id;
 
 	// Use this for initialization
 	void Start () {
@@ -116,7 +119,7 @@ public class UIManager : MonoBehaviour {
 		#region Main Menu UI Buttons
 		goto_sceneState_bttn.onClick.AddListener (() => {
 			Debug.Log ("Selected Scene State Options...");
-			BringPanelForward (scenes);
+			BringPanelForward (scene_states);
 		});
 		goto_items_bttn.onClick.AddListener (() => {
 			Debug.Log ("Selected Item Options...");
@@ -150,7 +153,12 @@ public class UIManager : MonoBehaviour {
             Debug.Log ("Selected NonAuth Options...");
             BringPanelForward (non_auth);
         });
-        goTo_menu_bttn2.onClick = goTo_menu_bttn3.onClick = goTo_menu_bttn4.onClick = goTo_menu_bttn5.onClick = goTo_menu_bttn8.onClick = goTo_menu_bttn6.onClick = goTo_menu_bttn7.onClick = goTo_menu_bttn1.onClick;
+        goto_scenes_bttn.onClick.AddListener (() => {
+            Debug.Log ("Selected Scenes Options...");
+            BringPanelForward (scenes);
+        });
+
+        goTo_menu_bttn2.onClick = goTo_menu_bttn3.onClick = goTo_menu_bttn9.onClick = goTo_menu_bttn4.onClick = goTo_menu_bttn5.onClick = goTo_menu_bttn8.onClick = goTo_menu_bttn6.onClick = goTo_menu_bttn7.onClick = goTo_menu_bttn1.onClick;
 		#endregion
 
 		#region AUTHENTICATION & REGISTRATION EXAMPLES
@@ -180,9 +188,12 @@ public class UIManager : MonoBehaviour {
 				}, (_error) => {
 					Debug.LogError("UIM| "+_error.ToString());
 				});
-            }, (_error, _isPop1User) => {
-                Debug.LogError("UIM| "+_error);
-                Debug.LogWarning("Player Was Pop1 User: "+_isPop1User);
+            }, (_authFailed) => {
+                Debug.LogError("UIM| "+_authFailed.errorMessage.ToString());
+                if(_authFailed.isPop1Player != string.Empty){
+                    Debug.LogWarning("Pop1 User: "+_authFailed.isPop1Player);
+                }
+               
 			});
 		});
 
@@ -199,8 +210,8 @@ public class UIManager : MonoBehaviour {
 					Debug.LogError("UIM| "+_error.ToString());
 				});
 				}, (_error, _suggestedName) => {
-				Debug.LogError ("UIM| Error: " + _error.ToString());
-				Debug.LogWarning ("UIM| Suggested Username: " + _suggestedName);
+    				Debug.LogError ("UIM| Error: " + _error.ToString());
+    				Debug.LogWarning ("UIM| Suggested Username: " + _suggestedName);
 
 			});
 		});
@@ -226,7 +237,7 @@ public class UIManager : MonoBehaviour {
 				// and request the inventory again to make sure it was picked up //
 				GameSparksManager.Instance ().GetInventory (character_id, null, null);
 			}, (_error) => {
-				Debug.LogError("UIM| "+_error.ToString());
+                Debug.LogError("UIM| "+_error.errorMessage.ToString());
 			});
 		});
 
@@ -237,7 +248,7 @@ public class UIManager : MonoBehaviour {
 				// and request the inventory again to make sure it was picked up //
 				GameSparksManager.Instance ().GetInventory (character_id, null, null);
 			}, (_error) => {
-				Debug.LogError("UIM| "+_error.ToString());
+                Debug.LogError("UIM| "+_error.errorMessage.ToString());
 			});
 		});
 			
@@ -248,7 +259,7 @@ public class UIManager : MonoBehaviour {
 				// and request the inventory again to make sure it was picked up //
 				GameSparksManager.Instance ().GetInventory (character_id, null, null);
 			}, (_error) => {
-				Debug.LogError("UIM| "+_error.ToString());
+                Debug.LogError("UIM| "+_error.errorMessage.ToString());
 			});
 		});
 
@@ -259,7 +270,7 @@ public class UIManager : MonoBehaviour {
 				// and request the inventory again to make sure it was picked up //
 				GameSparksManager.Instance ().GetInventory (character_id, null, null);
 			}, (_error) => {
-				Debug.LogError("UIM| "+_error.ToString());
+                Debug.LogError("UIM| "+_error.errorMessage.ToString());
 
 			});
 		});
@@ -273,7 +284,7 @@ public class UIManager : MonoBehaviour {
 				// you can use it from here //
 				_sceneState.Print ();
 			}, (_error) => {
-				Debug.LogError("UIM| "+_error.ToString());
+                Debug.LogError("UIM| "+_error.errorMessage.ToString());
 
 			});
 		});
@@ -284,7 +295,7 @@ public class UIManager : MonoBehaviour {
 				// on entered scene successfully //
 				Debug.Log ("Scene ID: " + scene_id + ", Island ID: " + island_id);
 			}, (_error) => {
-				Debug.LogError("UIM| "+_error.ToString());
+                Debug.LogError("UIM| "+_error.errorMessage.ToString());
 
 			});
 		});
@@ -294,6 +305,19 @@ public class UIManager : MonoBehaviour {
 			SceneState newScene = new SceneState (set_type.text, set_direction.text, int.Parse (set_x.text), int.Parse (set_y.text));
 			GameSparksManager.Instance ().SetSceneState (character_id, int.Parse (set_island_id.text), int.Parse (set_scene_id.text), newScene, null, null);
 		});
+
+        get_scenes_bttn.onClick.AddListener (() => {
+            Debug.Log ("UIM| Clicked on Enter Scene Button");
+            GameSparksManager.Instance ().GetScenes (character_id, int.Parse(get_scenes_island_id.text), (_sceneList) => {
+                // on entered scene successfully //
+                for(int i = 0; i < _sceneList.Length; i++){
+                    _sceneList[i].Print();
+                }
+            }, (_error) => {
+                Debug.LogError("UIM| "+_error.errorMessage.ToString());
+
+            });
+        });
 		#endregion 
 
 		#region CHARACTER XP EXAMPLES
@@ -306,7 +330,7 @@ public class UIManager : MonoBehaviour {
 					xpText.text = _xp.ToString ();
 					levelText.text = _level.ToString ();
 				}, (_error) => {
-					Debug.LogWarning("UIM| "+_error.ToString());
+                    Debug.LogWarning("UIM| "+_error.errorMessage.ToString());
 				});
 			}else{
 				Debug.LogError("UIM| Please Enter A Valid Number...");
@@ -331,7 +355,7 @@ public class UIManager : MonoBehaviour {
 				}
 				// parent email pending validation	
 			}, (_error) => {
-				Debug.LogError("UIM| "+_error.ToString());
+                Debug.LogError("UIM| "+_error.errorMessage.ToString());
 			});
 		});
 //
@@ -340,7 +364,7 @@ public class UIManager : MonoBehaviour {
 			GameSparksManager.Instance ().RegisterParentEmail (parent_email_input.text, () => {
 				// parent email pending validation	
 			}, (_error) => {
-				Debug.LogError("UIM| "+_error.ToString());
+                Debug.LogError("UIM| "+_error.errorMessage.ToString());
 			});
 		});
 
@@ -350,7 +374,7 @@ public class UIManager : MonoBehaviour {
 				// parent email pending validation	
 				Debug.Log ("UIM| Email Sent...");
 			}, (_error) => {
-				Debug.LogError("UIM| "+_error.ToString());
+                Debug.LogError("UIM| "+_error.errorMessage.ToString());
 			});
 		});
 
@@ -359,7 +383,7 @@ public class UIManager : MonoBehaviour {
             GameSparksManager.Instance ().DeleteParentEmailHistory (() => {
                 Debug.Log ("UIM| Email History Deleted...");
             }, (_error) => {
-                Debug.LogError("UIM| "+_error.ToString());
+                Debug.LogError("UIM| "+_error.errorMessage.ToString());
             });
         });
     
@@ -372,7 +396,7 @@ public class UIManager : MonoBehaviour {
 			GameSparksManager.Instance ().SendPrivateMessage (message_header.text, message_body.text, message_recipient.text, character_id, () => {
 				// on message sent
 			}, (_error) => {
-				Debug.LogError("UIM| "+_error.ToString());
+                Debug.LogError("UIM| "+_error.errorMessage.ToString());
 			});
 			// below is an example of how to send private messages with payload data //
 			// the payload data can be anything the client wants to interperate as an action or trigger (or anything really) //
@@ -403,7 +427,7 @@ public class UIManager : MonoBehaviour {
 			GameSparksManager.Instance ().DeleteMessage (message_id.text, () => {
 				// message was deleted
 			}, (_error) => {
-				Debug.LogError("UIM| "+_error.ToString());
+                Debug.LogError("UIM| "+_error.errorMessage.ToString());
 			});
 		});
 
@@ -421,7 +445,7 @@ public class UIManager : MonoBehaviour {
 					island.Print ();
 				}
 			}, (_error) => {
-				Debug.LogError("UIM| "+_error.ToString());
+                Debug.LogError("UIM| "+_error.errorMessage.ToString());
 			});
 		});
 
@@ -431,7 +455,7 @@ public class UIManager : MonoBehaviour {
 				Debug.Log ("Island ID:" + _islandID);
 
 			}, (_error) => { // if there was an error, there will be "error":{"@visitIsland":"invalid-island-id"}
-				Debug.LogError("UIM| "+_error.ToString());
+                Debug.LogError("UIM| "+_error.errorMessage.ToString());
 			});
 		});
 
@@ -440,7 +464,7 @@ public class UIManager : MonoBehaviour {
 			GameSparksManager.Instance ().LeaveIsland (character_id, int.Parse (player_island_id.text), () => {
 				// visit to island successful //
 			}, (_error) => {
-				Debug.LogError("UIM| "+_error.ToString());
+                Debug.LogError("UIM| "+_error.errorMessage.ToString());
 			});
 		});
 
@@ -449,7 +473,7 @@ public class UIManager : MonoBehaviour {
 			GameSparksManager.Instance ().CompleteIsland (character_id, int.Parse (player_island_id.text), () => {
 				// player completed island
 			}, (_error) => {
-				Debug.LogError("UIM| "+_error.ToString());
+                Debug.LogError("UIM| "+_error.errorMessage.ToString());
 			});
 		});
 		#endregion
@@ -474,7 +498,7 @@ public class UIManager : MonoBehaviour {
 			GameSparksManager.Instance ().GetCharacter (get_char_input.text, (_character) => {
 				_character.Print ();
 			}, (_error) => {
-				Debug.LogError("UIM| "+_error.ToString());
+                Debug.LogError("UIM| "+_error.errorMessage.ToString());
 			});
 		});
 
@@ -491,11 +515,11 @@ public class UIManager : MonoBehaviour {
 					levelText.text = _level.ToString();
 					Debug.Log("XP:"+_xp+", Level:"+_level);
 				}, (_error)=>{
-					Debug.LogError("UIM| "+_error.ToString());
+                    Debug.LogError("UIM| "+_error.errorMessage.ToString());
 				});
 
 			}, (_error) => {
-				Debug.LogError("UIM| "+_error.ToString());
+                Debug.LogError("UIM| "+_error.errorMessage.ToString());
 			});
 		});
 		#endregion 
@@ -506,7 +530,7 @@ public class UIManager : MonoBehaviour {
 			GameSparksManager.Instance ().SetFixedCostume (character_id, int.Parse (fixed_costume_id.text), (_costume_id) => {
 				Debug.Log ("UIM| Costume ID:" + _costume_id);
 			}, (_error) => {
-				Debug.LogError("UIM| "+_error.ToString());
+                Debug.LogError("UIM| "+_error.errorMessage.ToString());
 			});
 		});
 
@@ -520,7 +544,7 @@ public class UIManager : MonoBehaviour {
 				}
 
 			}, (_error) => {
-				Debug.LogError("UIM| "+_error.ToString());
+                Debug.LogError("UIM| "+_error.errorMessage.ToString());
 			});
 		});
 
@@ -543,7 +567,7 @@ public class UIManager : MonoBehaviour {
 			GameSparksManager.Instance ().GetAdornment (int.Parse (check_adornment_id.text), (_adornment) => {
 				_adornment.Print ();
 			}, (_error) => {
-				Debug.LogError("UIM| "+_error.ToString());
+                Debug.LogError("UIM| "+_error.errorMessage.ToString());
 			});
 
 		});
@@ -552,7 +576,7 @@ public class UIManager : MonoBehaviour {
 			GameSparksManager.Instance ().GetOutfit (character_id, (_outfit) => {
 				_outfit.Print ();
 			}, (_error) => {
-				Debug.LogError("UIM| "+_error.ToString());
+                Debug.LogError("UIM| "+_error.errorMessage.ToString());
 			});
 		});
 		set_outfit_bttn.onClick.AddListener (() => {
@@ -562,7 +586,7 @@ public class UIManager : MonoBehaviour {
 				new Outfit (hair_col.text, skin_col.text, shirt.text, pants.text, hair.text, faceMark.text, helmet.text), () => {
 				Debug.Log ("UIM| Set OutFit...");
 			}, (_error) => {
-					Debug.LogError("UIM| "+_error.ToString());
+                Debug.LogError("UIM| "+_error.errorMessage.ToString());
 			});
 		});
 		#endregion
@@ -613,13 +637,16 @@ public class UIManager : MonoBehaviour {
 		Debug.Log ("UIM| Bringing Forward "+_panel.gameObject.name);
 		menu.SetActive(false);
 		items.SetActive(false);
-		scenes.SetActive(false);
+		scene_states.SetActive(false);
+        scenes.SetActive(false);
 		playerDetails.SetActive (false);
 		inbox.SetActive (false);
 		islands.SetActive (false);
 		characters.SetActive (false);
 		outfits.SetActive (false);
+        non_auth.SetActive(false);
 		_panel.SetActive (true);
+         
 
 		if (_panel.gameObject.name == "character_panel") {
 			Debug.Log ("UIM| Loading Player Details...");
