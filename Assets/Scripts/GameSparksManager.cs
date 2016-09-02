@@ -7,6 +7,8 @@ using System.Text.RegularExpressions;
 using System.Collections.Generic;
 using GameSparks.Api.Messages;
 using System;
+using System.Reflection;
+using System.Linq.Expressions;
 
 
 /// <summary>
@@ -547,6 +549,7 @@ public class GameSparksManager : MonoBehaviour
                     }
                     else
                     {
+                        
                         if (onRequestFailed != null)
                         {
                             onRequestFailed(new GameSparksError(ProcessGSErrors(response.Errors)));
@@ -555,6 +558,7 @@ public class GameSparksManager : MonoBehaviour
                 });
     }
 
+ 
     #endregion
 
     #region SCENES STATE API CALLS
@@ -1495,6 +1499,7 @@ public class GameSparksManager : MonoBehaviour
 
     #region Character Outfit
 
+
     /// <summary>
     /// Sets the outfit in the character's outfit collection
     /// </summary>
@@ -1504,18 +1509,47 @@ public class GameSparksManager : MonoBehaviour
     /// <param name="onRequestFailed">On request failed. Receives GameSparksError, contains enum & string errorString</param>
     public void SetOutfit(string character_id, Outfit outfit, onRequestSuccess onRequestSuccess, onRequestFailed onRequestFailed)
     {
-        Debug.Log("GMS| Setting Outfit...");
+        Debug.Log("GSM| Setting Character Outfit....");
         if (outfit != null)
         {
             GSRequestData outfitData = new GSRequestData();
-            outfitData.AddString("FixedCostumeApplied", "false");
-            outfitData.AddString("SkinColor", outfit.skin_color);
-            outfitData.AddString("HairColor", outfit.hair_color);
-            outfitData.AddString("Shirt", outfit.shirt);
-            outfitData.AddString("Pants", outfit.pants);
-            outfitData.AddString("Hair", outfit.hair);
-            outfitData.AddString("FaceMark", outfit.face_mark);
-            outfitData.AddString("Helmet", outfit.helmet);
+            Debug.Log("GSM| Building GSdata...");
+            // using the Outfit type we can iterate through all the fields in Outfit and get the variable names //
+            foreach(var field in typeof(Outfit).GetFields())
+            {
+                string varName = field.Name;
+                // then we can parse those field-values back to objects to get the names of adornment, and values for any bools, strings or ints //
+                if(field.GetValue(outfit) != null && field.GetValue(outfit).GetType() == typeof(Adornment))
+                {
+                    Adornment adorn =  (Adornment)field.GetValue(outfit);
+                    outfitData.AddString(varName, adorn.name);
+                }
+                // colour are a special case which will be stores with r,g,b values on the server. This makes it easier to parse //
+                // them back to Color objects when the outfit comes back //
+                else if(field.GetValue(outfit) != null && field.GetValue(outfit).GetType() == typeof(Color))
+                {
+                    Color color = (Color)field.GetValue(outfit); // get the colour object
+                    GSRequestData colJSON = new GSRequestData();
+                    colJSON .AddNumber("r", color.r); // pass in the r,g,b,a values as seperate fields
+                    colJSON .AddNumber("g", color.g);
+                    colJSON .AddNumber("b", color.b);
+                    colJSON .AddNumber("a", color.a);
+                    outfitData.AddObject(varName, colJSON); // set the colour as gsdata json object
+                }
+                else if(field.GetValue(outfit) != null && field.GetValue(outfit).GetType() == typeof(bool))
+                {
+                    outfitData.AddBoolean(varName, bool.Parse(field.GetValue(outfit).ToString()));
+                }
+                else if(field.GetValue(outfit) != null && field.GetValue(outfit).GetType() == typeof(int))
+                {
+                    outfitData.AddNumber(varName, int.Parse(field.GetValue(outfit).ToString()));
+                }
+                else if(field.GetValue(outfit) != null && field.GetValue(outfit).GetType() == typeof(string))
+                {
+                    outfitData.AddString(varName, field.GetValue(outfit).ToString());
+                }
+            }
+
             new GameSparks.Api.Requests.LogEventRequest().SetEventKey("setOutfit")
                 .SetEventAttribute("character_id", character_id)
                 .SetEventAttribute("outfit", outfitData)
@@ -1549,6 +1583,8 @@ public class GameSparksManager : MonoBehaviour
 
     public delegate void onGetOutfit(Outfit outfit);
 
+
+   
   
     public void GetOutfit(string character_id, onGetOutfit onGetOutfit, onRequestFailed onRequestFailed)
     {
@@ -1560,9 +1596,49 @@ public class GameSparksManager : MonoBehaviour
                 if (!response.HasErrors)
                 {
                     Debug.Log("GSM| Outfit Retrieved....");
+                        Debug.LogWarning(response.ScriptData.JSON);
+
                     if (onGetOutfit != null && response.ScriptData.GetGSData("outfit") != null)
                     {
-                        onGetOutfit(new Outfit(response.ScriptData.GetGSData("outfit").GetInt("outfit_id").Value, response.ScriptData.GetGSData("outfit").GetString("SkinColor"), response.ScriptData.GetGSData("outfit").GetString("HairColor"), response.ScriptData.GetGSData("outfit").GetString("Shirt"), response.ScriptData.GetGSData("outfit").GetString("Pants"), response.ScriptData.GetGSData("outfit").GetString("Hair"), response.ScriptData.GetGSData("outfit").GetString("FaceMark"), response.ScriptData.GetGSData("outfit").GetString("Helmet")));
+                            Outfit newOutfit = new Outfit();
+
+                            foreach(var field in typeof(Outfit).GetFields())
+                            {
+                                if(response.ScriptData.GetGSData("outfit").ContainsKey(field.Name)){
+
+//                                    if(field.FieldType != null){
+//                                        Debug.Log(field.FieldType);//+"|"+field.GetValue(newOutfit).GetType().ToString());
+////                                    
+//                                    }
+                                    if(field.FieldType == typeof(Adornment)){
+                                        Debug.LogError("Bingo!");
+                                    }
+
+//                                    if(field.GetType() == typeof(string)){
+//                                        string s = response.ScriptData.GetGSData("outfit").GetString(field.Name);
+//                                        Debug.Log(s);
+//                                    }
+
+//                                    field.SetValue(newOutfit, response.ScriptData.GetGSData("outfit").GetString(field.Name));
+
+
+//                                    Debug.LogError(newOutfit.isPlayerOutfit);
+//                                    Debug.Log(field.Name);
+                                }
+
+                            }
+
+
+//                            var type = typeof(Outfit);
+//                            foreach(var a in type.GetProperties()){
+//                                Debug.Log(a.Name);
+//                            }
+//                            foreach(var field in typeof(Outfit).GetFields())
+//                            {
+//                                if(field
+//                            }
+//                            
+//                        onGetOutfit(new Outfit(response.ScriptData.GetGSData("outfit").GetInt("outfit_id").Value, response.ScriptData.GetGSData("outfit").GetString("SkinColor"), response.ScriptData.GetGSData("outfit").GetString("HairColor"), response.ScriptData.GetGSData("outfit").GetString("Shirt"), response.ScriptData.GetGSData("outfit").GetString("Pants"), response.ScriptData.GetGSData("outfit").GetString("Hair"), response.ScriptData.GetGSData("outfit").GetString("FaceMark"), response.ScriptData.GetGSData("outfit").GetString("Helmet")));
                     }
                 }
                 else
@@ -1589,31 +1665,31 @@ public class GameSparksManager : MonoBehaviour
     public void GetAdornment(int adornment_id, onGetAdornment onGetAdornment, onRequestFailed onRequestFailed)
     {
         Debug.Log("GMS| Fetching Adornment...");
-        new GameSparks.Api.Requests.LogEventRequest().SetEventKey("getAdornment")
-            .SetEventAttribute("adornment_id", adornment_id)
-            .Send((response) =>
-            {
-                if (!response.HasErrors)
-                {
-                    Debug.Log("GSM| Adornment Retrieved....");
-                    if (onGetAdornment != null && response.ScriptData.GetGSData("adornment") != null)
-                    {
-                        List<Adornment.Restriction> restList = new List<Adornment.Restriction>();
-                        foreach (GSData rest in response.ScriptData.GetGSData("adornment").GetGSDataList("restrictions"))
-                        {
-                            restList.Add(new Adornment.Restriction(rest.GetString("restriction_type"), rest.GetInt("min_level").Value, rest.GetInt("max_level").Value));
-                        }
-                        onGetAdornment(new Adornment(response.ScriptData.GetGSData("adornment").GetInt("adornment_id").Value, response.ScriptData.GetGSData("adornment").GetString("name"), response.ScriptData.GetGSData("adornment").GetInt("assetbundle_id").Value, restList.ToArray()));
-                    }
-                }
-                else
-                {
-                    if (onRequestFailed != null)
-                    {
-                        onRequestFailed(new GameSparksError(ProcessGSErrors(response.Errors)));
-                    }
-                }
-            });
+//        new GameSparks.Api.Requests.LogEventRequest().SetEventKey("getAdornment")
+//            .SetEventAttribute("adornment_id", adornment_id)
+//            .Send((response) =>
+//            {
+//                if (!response.HasErrors)
+//                {
+//                    Debug.Log("GSM| Adornment Retrieved....");
+//                    if (onGetAdornment != null && response.ScriptData.GetGSData("adornment") != null)
+//                    {
+//                        List<Adornment.Restriction> restList = new List<Adornment.Restriction>();
+//                        foreach (GSData rest in response.ScriptData.GetGSData("adornment").GetGSDataList("restrictions"))
+//                        {
+//                            restList.Add(new Adornment.Restriction(rest.GetString("restriction_type"), rest.GetInt("min_level").Value, rest.GetInt("max_level").Value));
+//                        }
+//                        onGetAdornment(new Adornment(response.ScriptData.GetGSData("adornment").GetInt("adornment_id").Value, response.ScriptData.GetGSData("adornment").GetString("name"), response.ScriptData.GetGSData("adornment").GetInt("assetbundle_id").Value, restList.ToArray()));
+//                    }
+//                }
+//                else
+//                {
+//                    if (onRequestFailed != null)
+//                    {
+//                        onRequestFailed(new GameSparksError(ProcessGSErrors(response.Errors)));
+//                    }
+//                }
+//            });
     }
 
     /// <summary>
@@ -1629,46 +1705,46 @@ public class GameSparksManager : MonoBehaviour
     /// <param name="onRequestFailed">On request failed. Receives GameSparksError, contains enum & string errorString</param>
     public void GetAdornments(List<int> adornment_ids, onGetAdornments onGetAdornments, onRequestFailed onRequestFailed)
     {
-        Debug.Log("GMS| Fetching Adornments...");
-        if (adornment_ids != null)
-        {
-            GSRequestData adList = new GSRequestData();
-            adList.AddNumberList("adornment_ids", adornment_ids);
-            new GameSparks.Api.Requests.LogEventRequest().SetEventKey("getAdornments")
-                .SetEventAttribute("adornment_ids", adList)
-                .Send((response) =>
-                {
-                    if (!response.HasErrors)
-                    {
-                        Debug.Log("GSM| Adornments Retrieved....");
-                        if (onGetAdornments != null && response.ScriptData.GetGSDataList("adornments") != null)
-                        {
-                            List<Adornment> adsList = new List<Adornment>();
-                            foreach (GSData ads in response.ScriptData.GetGSDataList("adornments"))
-                            {
-                                List<Adornment.Restriction> restList = new List<Adornment.Restriction>();
-                                foreach (GSData rest in ads.GetGSDataList("restrictions"))
-                                {
-                                    restList.Add(new Adornment.Restriction(rest.GetString("restriction_type"), rest.GetInt("min_level").Value, rest.GetInt("max_level").Value));
-                                }
-                                adsList.Add(new Adornment(ads.GetInt("adornment_id").Value, ads.GetString("name"), ads.GetInt("assetbundle_id").Value, restList.ToArray()));
-                            }
-                            onGetAdornments(adsList.ToArray());
-                        }
-                    }
-                    else
-                    {
-                        if (onRequestFailed != null)
-                        {
-                            onRequestFailed(new GameSparksError(ProcessGSErrors(response.Errors)));
-                        }
-                    }
-                });
-        }
-        else
-        {
-            Debug.LogWarning("GSM| Must Submit Valid List Of Adornments...");
-        }
+//        Debug.Log("GMS| Fetching Adornments...");
+//        if (adornment_ids != null)
+//        {
+//            GSRequestData adList = new GSRequestData();
+//            adList.AddNumberList("adornment_ids", adornment_ids);
+//            new GameSparks.Api.Requests.LogEventRequest().SetEventKey("getAdornments")
+//                .SetEventAttribute("adornment_ids", adList)
+//                .Send((response) =>
+//                {
+//                    if (!response.HasErrors)
+//                    {
+//                        Debug.Log("GSM| Adornments Retrieved....");
+//                        if (onGetAdornments != null && response.ScriptData.GetGSDataList("adornments") != null)
+//                        {
+//                            List<Adornment> adsList = new List<Adornment>();
+//                            foreach (GSData ads in response.ScriptData.GetGSDataList("adornments"))
+//                            {
+//                                List<Adornment.Restriction> restList = new List<Adornment.Restriction>();
+//                                foreach (GSData rest in ads.GetGSDataList("restrictions"))
+//                                {
+//                                    restList.Add(new Adornment.Restriction(rest.GetString("restriction_type"), rest.GetInt("min_level").Value, rest.GetInt("max_level").Value));
+//                                }
+//                                adsList.Add(new Adornment(ads.GetInt("adornment_id").Value, ads.GetString("name"), ads.GetInt("assetbundle_id").Value, restList.ToArray()));
+//                            }
+//                            onGetAdornments(adsList.ToArray());
+//                        }
+//                    }
+//                    else
+//                    {
+//                        if (onRequestFailed != null)
+//                        {
+//                            onRequestFailed(new GameSparksError(ProcessGSErrors(response.Errors)));
+//                        }
+//                    }
+//                });
+//        }
+//        else
+//        {
+//            Debug.LogWarning("GSM| Must Submit Valid List Of Adornments...");
+//        }
     }
 
     /// <summary>

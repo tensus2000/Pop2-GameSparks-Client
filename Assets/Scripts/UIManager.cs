@@ -66,9 +66,12 @@ public class UIManager : MonoBehaviour {
 	public InputField grantXp_field;
 	public Text xpText, levelText;
 
-	public Button set_fixed_costume_bttn, is_adornments_available_bttn, get_adornment_bttn, get_outfit_bttn, set_outfit_bttn;
-	public InputField check_adornment_id, fixed_costume_id;
-	public InputField hair_col, skin_col, shirt, pants, hair, helmet, faceMark; 
+    public Button set_fixed_costume_bttn, is_adornments_available_bttn, get_adornment_bttn;//, get_outfit_bttn;//, set_outfit_bttn;
+    public InputField eyes, marks, mouth, makeup, hair, facial, shirt, helmet, pants, bangs, shoes, overshirt, wristfont, overpants, backhand, hat, pack;
+    public Text outfit_title;
+
+    public Button outfit_back_bttn, set_outfit_bttn, create_outfit_bttn, get_outfit_bttn;
+    public GameObject set_outfit_panel;
 
 	public Button reset_email_bttn;
 	public InputField username_password_reset;
@@ -525,28 +528,28 @@ public class UIManager : MonoBehaviour {
 		#endregion 
 
 		#region CHARACTER OUTFIT EXAMPLES
-		set_fixed_costume_bttn.onClick.AddListener (() => {
-			Debug.Log ("UIM| Clicked On Set Fixed Costume Button...");
-			GameSparksManager.Instance ().SetFixedCostume (character_id, int.Parse (fixed_costume_id.text), (_costume_id) => {
-				Debug.Log ("UIM| Costume ID:" + _costume_id);
-			}, (_error) => {
-                Debug.LogError("UIM| "+_error.errorMessage.ToString());
-			});
-		});
-
-		is_adornments_available_bttn.onClick.AddListener (() => {
-			Debug.Log ("UIM| Clicked On Is Adornment Available Button...");
-			GameSparksManager.Instance ().IsAdornmentAvailable (character_id, int.Parse (check_adornment_id.text), (_isAvailable) => {
-				if (_isAvailable) {
-					Debug.Log ("UIM| Adornment Is Available...");
-				} else {
-					Debug.Log ("UIM| Adornment Is UnAvailable...");
-				}
-
-			}, (_error) => {
-                Debug.LogError("UIM| "+_error.errorMessage.ToString());
-			});
-		});
+//		set_fixed_costume_bttn.onClick.AddListener (() => {
+//			Debug.Log ("UIM| Clicked On Set Fixed Costume Button...");
+//			GameSparksManager.Instance ().SetFixedCostume (character_id, int.Parse (fixed_costume_id.text), (_costume_id) => {
+//				Debug.Log ("UIM| Costume ID:" + _costume_id);
+//			}, (_error) => {
+//                Debug.LogError("UIM| "+_error.errorMessage.ToString());
+//			});
+//		});
+//
+//		is_adornments_available_bttn.onClick.AddListener (() => {
+//			Debug.Log ("UIM| Clicked On Is Adornment Available Button...");
+//			GameSparksManager.Instance ().IsAdornmentAvailable (character_id, int.Parse (check_adornment_id.text), (_isAvailable) => {
+//				if (_isAvailable) {
+//					Debug.Log ("UIM| Adornment Is Available...");
+//				} else {
+//					Debug.Log ("UIM| Adornment Is UnAvailable...");
+//				}
+//
+//			}, (_error) => {
+//                Debug.LogError("UIM| "+_error.errorMessage.ToString());
+//			});
+//		});
 
 		// --> EXAMPLE, BELOW IS AND EXAMPLE OF HOW TO REQUEST MULTIPLE ADORNMENTS BY ID //
 
@@ -562,36 +565,144 @@ public class UIManager : MonoBehaviour {
 //		});
 
 
-		get_adornment_bttn.onClick.AddListener (() => {
-			Debug.Log ("UIM| Clicked On Get Adornment Button...");
-			GameSparksManager.Instance ().GetAdornment (int.Parse (check_adornment_id.text), (_adornment) => {
-				_adornment.Print ();
-			}, (_error) => {
-                Debug.LogError("UIM| "+_error.errorMessage.ToString());
-			});
-
-		});
-		get_outfit_bttn.onClick.AddListener (() => {
-			Debug.Log ("UIM| Clicked On Get Outfit Button...");
-			GameSparksManager.Instance ().GetOutfit (character_id, (_outfit) => {
-				_outfit.Print ();
-			}, (_error) => {
-                Debug.LogError("UIM| "+_error.errorMessage.ToString());
-			});
-		});
+//		get_adornment_bttn.onClick.AddListener (() => {
+//			Debug.Log ("UIM| Clicked On Get Adornment Button...");
+//			GameSparksManager.Instance ().GetAdornment (int.Parse (check_adornment_id.text), (_adornment) => {
+//				_adornment.Print ();
+//			}, (_error) => {
+//                Debug.LogError("UIM| "+_error.errorMessage.ToString());
+//			});
+//
+//		});
+//		get_outfit_bttn.onClick.AddListener (() => {
+//			Debug.Log ("UIM| Clicked On Get Outfit Button...");
+//			GameSparksManager.Instance ().GetOutfit (character_id, (_outfit) => {
+//				_outfit.Print ();
+//			}, (_error) => {
+//                Debug.LogError("UIM| "+_error.errorMessage.ToString());
+//			});
+//		});
 		set_outfit_bttn.onClick.AddListener (() => {
 			Debug.Log ("UIM| Clicked On Set Outfit Button...");
 
-			GameSparksManager.Instance ().SetOutfit (character_id, 
-				new Outfit (hair_col.text, skin_col.text, shirt.text, pants.text, hair.text, faceMark.text, helmet.text), () => {
-				Debug.Log ("UIM| Set OutFit...");
+            // THE FOLLOWING IS AN EXAMPLE OF AN OUTFIT USED FOR TESTING //
+//            Outfit outfit = new Outfit();
+//            outfit.isPlayerOutfit = true;
+//            outfit.skinColor = Color.gray;
+//            outfit.hairColor = Color.blue;
+//            outfit.reactiveEyelids = true;
+//            outfit.eyes = new Adornment(){ name = "eyes"};
+//            outfit.mouth = new Adornment(){ name = "mouth"};
+//            outfit.hair = new Adornment(){ name = "hair"};
+//            outfit.shirt = new Adornment(){ name = "shirt"};
+//            outfit.pants = new Adornment(){ name = "pants"};
+//            outfit.shoes = new Adornment(){ name = "shoes"};
+//            outfit.wristFront = new Adornment(){ name = "wrist"};
+//            outfit.bangs = new Adornment(){ name = "bangs"};
+//            outfit.helmet = new Adornment(){ name = "helmet"};
+//            outfit.facial = new Adornment(){ name = "facial"};
+//            outfit.makeup = new Adornment(){ name = "makeup"};
+//            outfit.marks = new Adornment(){ name = "marks"};
+//            outfit.overshirt = new Adornment(){ name = "overshirt"};
+//            outfit.overpants = new Adornment(){ name = "overpants"};
+//            outfit.backhandItem = new Adornment(){ name = "backhandItem"};
+//            outfit.hat = new Adornment(){ name = "hat"};
+//            outfit.pack = new Adornment(){ name = "pack"};
+
+            Outfit outfit = new Outfit();
+            outfit.isPlayerOutfit = true;
+            outfit.skinColor = Color.gray;
+            outfit.hairColor = Color.blue;
+            outfit.reactiveEyelids = true;
+            outfit.eyes = new Adornment(){ name = eyes.text };
+            outfit.mouth = new Adornment(){ name = mouth.text };
+            outfit.hair = new Adornment(){ name = hair.text };
+            outfit.shirt = new Adornment(){ name = shirt.text };
+            outfit.pants = new Adornment(){ name = pants.text };
+            outfit.shoes = new Adornment(){ name = shoes.text };
+            outfit.wristFront = new Adornment(){ name = wristfont.text };
+            outfit.bangs = new Adornment(){ name = bangs.text };
+            outfit.helmet = new Adornment(){ name = helmet.text };
+            outfit.facial = new Adornment(){ name = facial.text };
+            outfit.makeup = new Adornment(){ name = makeup.text };
+            outfit.marks = new Adornment(){ name = marks.text };
+            outfit.overshirt = new Adornment(){ name = overshirt.text };
+            outfit.overpants = new Adornment(){ name = overpants.text };
+            outfit.backhandItem = new Adornment(){ name = backhand.text };
+            outfit.hat = new Adornment(){ name = hat.text };
+            outfit.pack = new Adornment(){ name = pack.text };
+
+
+			GameSparksManager.Instance ().SetOutfit (character_id, outfit, () => {
 			}, (_error) => {
                 Debug.LogError("UIM| "+_error.errorMessage.ToString());
 			});
 		});
-		#endregion
-	}
 
+        set_outfit_panel.SetActive(false);
+        create_outfit_bttn.onClick.AddListener (() => {
+            Debug.Log("UIM| Clicked On Create Outfit Bttn");
+
+            eyes.readOnly = false;
+            mouth.readOnly = false;
+            hair.readOnly = false;
+            shirt.readOnly = false;
+            pants.readOnly = false;
+            shoes.readOnly = false;
+            wristfont.readOnly = false;
+            bangs.readOnly = false;
+            helmet.readOnly = false;
+            facial.readOnly = false;
+            makeup.readOnly = false;
+            marks.readOnly = false;
+            overshirt.readOnly = false;
+            overpants.readOnly = false;
+            backhand.readOnly = false;
+            hat.readOnly = false;
+            pack.readOnly = false;
+
+            outfit_title.text = "Create Outfit";
+            set_outfit_bttn.gameObject.SetActive(true);
+            set_outfit_panel.SetActive(true);
+        });
+        outfit_back_bttn.onClick.AddListener (() => {
+            Debug.Log("UIM| Clicked On Outfit Back Bttn");
+            set_outfit_panel.SetActive(false);
+        });
+        get_outfit_bttn.onClick.AddListener (() => {
+            Debug.Log("UIM| Clicked On Get Outfit Bttn");
+
+            eyes.readOnly = true;
+            mouth.readOnly = true;
+            hair.readOnly = true;
+            shirt.readOnly = true;
+            pants.readOnly = true;
+            shoes.readOnly = true;
+            wristfont.readOnly = true;
+            bangs.readOnly = true;
+            helmet.readOnly = true;
+            facial.readOnly = true;
+            makeup.readOnly = true;
+            marks.readOnly = true;
+            overshirt.readOnly = true;
+            overpants.readOnly = true;
+            backhand.readOnly = true;
+            hat.readOnly = true;
+            pack.readOnly = true;
+
+            outfit_title.text = "Load Outfit";
+            set_outfit_bttn.gameObject.SetActive(false);
+            set_outfit_panel.SetActive(true);
+
+            GameSparksManager.Instance ().GetOutfit(character_id, (_outfit) => {
+            }, (_error) => {
+                Debug.LogError("UIM| "+_error.errorMessage.ToString());
+            });
+
+        });
+		#endregion
+
+	}
 
 
 

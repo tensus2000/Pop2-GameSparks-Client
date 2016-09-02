@@ -2,6 +2,8 @@
 using System.Collections;
 using GameSparks.Core;
 using System;
+using System.Collections.Generic;
+using System.Linq.Expressions;
 
 
 public class Scene
@@ -95,78 +97,117 @@ public class ParentEmailStatus
 }
 
 
-public class Adornment
-{
-    int adornment_id, assetbundle_id;
-    string name;
-    Restriction[] restrictions;
+//public class Adornment
+//{
+//    int adornment_id, assetbundle_id;
+//    string name;
+//    Restriction[] restrictions;
+//
+//    public Adornment(int adornment_id, string name, int assetbundle_id, Restriction[] restrictions)
+//    {
+//        this.adornment_id = adornment_id;
+//        this.assetbundle_id = assetbundle_id;
+//        this.name = name;
+//        this.restrictions = restrictions;
+//    }
+//
+//    public void Print()
+//    {
+//        Debug.Log("ID:" + adornment_id + ", Name:" + name + ", Bundle_ID:" + assetbundle_id + ", Restrictions:" + restrictions.Length);
+//    }
+//
+//    public class Restriction
+//    {
+//        string restriction_type;
+//        int min_level, max_level;
+//
+//        public Restriction(string restriction_type, int min_level, int max_level)
+//        {
+//            this.min_level = min_level;
+//            this.max_level = max_level;
+//            this.restriction_type = restriction_type;
+//        }
+//
+//        public void Print()
+//        {
+//            Debug.Log("Type:" + restriction_type + ", Min Level:" + min_level + ", Max Level:" + max_level);
+//        }
+//    }
+//}
 
-    public Adornment(int adornment_id, string name, int assetbundle_id, Restriction[] restrictions)
-    {
-        this.adornment_id = adornment_id;
-        this.assetbundle_id = assetbundle_id;
-        this.name = name;
-        this.restrictions = restrictions;
-    }
+//public class Outfit
+//{
+//    public int outfit_id;
+//    public string skin_color, hair_color;
+//    public string shirt, pants, hair, face_mark, helmet;
+//
+//    public Outfit(int outfit_id, string skin_color, string hair_color, string shirt, string pants, string  hair, string face_mark, string helmet)
+//    {
+//        this.outfit_id = outfit_id;
+//        this.skin_color = skin_color;
+//        this.hair_color = hair_color;
+//        this.shirt = shirt;
+//        this.pants = pants;
+//        this.hair = hair;
+//        this.face_mark = face_mark;
+//        this.helmet = helmet;
+//    }
+//
+//    public Outfit(string skin_color, string hair_color, string shirt, string pants, string  hair, string face_mark, string helmet)
+//    {
+//        this.skin_color = skin_color;
+//        this.hair_color = hair_color;
+//        this.shirt = shirt;
+//        this.pants = pants;
+//        this.hair = hair;
+//        this.face_mark = face_mark;
+//        this.helmet = helmet;
+//    }
+//
+//    public void Print()
+//    {
+//        Debug.Log("ID:" + outfit_id + ", skin:" + skin_color.ToString() + ", hair:" + hair_color.ToString() + ", shirt:" + shirt + ", pants:" + pants + ", hair:" + hair + ", mask:" + face_mark + ", helmet:" + helmet);
+//    }
+//}
 
-    public void Print()
-    {
-        Debug.Log("ID:" + adornment_id + ", Name:" + name + ", Bundle_ID:" + assetbundle_id + ", Restrictions:" + restrictions.Length);
-    }
+public class Outfit {
+  
+    public bool isPlayerOutfit;
 
-    public class Restriction
-    {
-        string restriction_type;
-        int min_level, max_level;
+    public Color skinColor, hairColor;
+    public bool reactiveEyelids;
 
-        public Restriction(string restriction_type, int min_level, int max_level)
-        {
-            this.min_level = min_level;
-            this.max_level = max_level;
-            this.restriction_type = restriction_type;
-        }
 
-        public void Print()
-        {
-            Debug.Log("Type:" + restriction_type + ", Min Level:" + min_level + ", Max Level:" + max_level);
-        }
-    }
+    public Adornment eyes;
+    public Adornment mouth;
+    public Adornment hair;
+    public Adornment shirt;
+    public Adornment pants;
+    public Adornment shoes;
+  
+    public Adornment wristFront;
+    public Adornment bangs;
+    public Adornment helmet;
+    public Adornment facial;
+    public Adornment makeup;
+    public Adornment marks;
+    public Adornment overshirt;
+    public Adornment overpants;
+    public Adornment backhandItem;
+    public Adornment hat;
+    public Adornment pack;
+
+
 }
 
-public class Outfit
+public class Adornment  
 {
-    public int outfit_id;
-    public string skin_color, hair_color;
-    public string shirt, pants, hair, face_mark, helmet;
-
-    public Outfit(int outfit_id, string skin_color, string hair_color, string shirt, string pants, string  hair, string face_mark, string helmet)
-    {
-        this.outfit_id = outfit_id;
-        this.skin_color = skin_color;
-        this.hair_color = hair_color;
-        this.shirt = shirt;
-        this.pants = pants;
-        this.hair = hair;
-        this.face_mark = face_mark;
-        this.helmet = helmet;
-    }
-
-    public Outfit(string skin_color, string hair_color, string shirt, string pants, string  hair, string face_mark, string helmet)
-    {
-        this.skin_color = skin_color;
-        this.hair_color = hair_color;
-        this.shirt = shirt;
-        this.pants = pants;
-        this.hair = hair;
-        this.face_mark = face_mark;
-        this.helmet = helmet;
-    }
-
-    public void Print()
-    {
-        Debug.Log("ID:" + outfit_id + ", skin:" + skin_color.ToString() + ", hair:" + hair_color.ToString() + ", shirt:" + shirt + ", pants:" + pants + ", hair:" + hair + ", mask:" + face_mark + ", helmet:" + helmet);
-    }
+    public string asset_bundle_url;
+    public string name;
+    public bool isAvailable = true;
 }
+
+
 
 
 public class Item
