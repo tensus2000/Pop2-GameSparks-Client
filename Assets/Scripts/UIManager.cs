@@ -67,7 +67,7 @@ public class UIManager : MonoBehaviour {
 	public Text xpText, levelText;
 
     public Button set_fixed_costume_bttn, is_adornments_available_bttn, get_adornment_bttn;//, get_outfit_bttn;//, set_outfit_bttn;
-    public InputField eyes, marks, mouth, makeup, hair, facial, shirt, helmet, pants, bangs, shoes, overshirt, wristfont, overpants, backhand, hat, pack;
+    public InputField marks, makeup, hair, facial, shirt, helmet, pants, bangs, shoes, overshirt, wristfont, overpants, backhand, hat, pack;
     public Text outfit_title;
 
     public Button outfit_back_bttn, set_outfit_bttn, create_outfit_bttn, get_outfit_bttn;
@@ -182,7 +182,7 @@ public class UIManager : MonoBehaviour {
 
 				// now we can check if the player has a parent email registered or not //
 				Debug.LogWarning("Player Has Parent Email: "+_authResponse.hasParentEmail);
-				
+			
 
 				server_version_txt.text = "Server Version: Requesting....";
 				GameSparksManager.Instance ().GetServerVersion ((_version) => {
@@ -193,9 +193,12 @@ public class UIManager : MonoBehaviour {
 				});
             }, (_authFailed) => {
                 Debug.LogError("UIM| "+_authFailed.errorMessage.ToString());
+
                 if(_authFailed.isPop1Player != string.Empty){
                     Debug.LogWarning("Pop1 User: "+_authFailed.isPop1Player);
                 }
+
+                _authFailed.Print();
                
 			});
 		});
@@ -383,7 +386,7 @@ public class UIManager : MonoBehaviour {
 
         delete_parent_email_bttn.onClick.AddListener (() => {
             Debug.Log ("UIM| Clicked On Delete Password Button...");
-            GameSparksManager.Instance ().DeleteParentEmailHistory (() => {
+            GameSparksManager.Instance ().DeleteParentEmail (() => {
                 Debug.Log ("UIM| Email History Deleted...");
             }, (_error) => {
                 Debug.LogError("UIM| "+_error.errorMessage.ToString());
@@ -614,23 +617,21 @@ public class UIManager : MonoBehaviour {
             outfit.skinColor = Color.gray;
             outfit.hairColor = Color.blue;
             outfit.reactiveEyelids = true;
-            outfit.eyes = new Adornment(){ name = eyes.text };
-            outfit.mouth = new Adornment(){ name = mouth.text };
-            outfit.hair = new Adornment(){ name = hair.text };
-            outfit.shirt = new Adornment(){ name = shirt.text };
-            outfit.pants = new Adornment(){ name = pants.text };
-            outfit.shoes = new Adornment(){ name = shoes.text };
-            outfit.wristFront = new Adornment(){ name = wristfont.text };
-            outfit.bangs = new Adornment(){ name = bangs.text };
-            outfit.helmet = new Adornment(){ name = helmet.text };
-            outfit.facial = new Adornment(){ name = facial.text };
-            outfit.makeup = new Adornment(){ name = makeup.text };
-            outfit.marks = new Adornment(){ name = marks.text };
-            outfit.overshirt = new Adornment(){ name = overshirt.text };
-            outfit.overpants = new Adornment(){ name = overpants.text };
-            outfit.backhandItem = new Adornment(){ name = backhand.text };
-            outfit.hat = new Adornment(){ name = hat.text };
-            outfit.pack = new Adornment(){ name = pack.text };
+            outfit.hair = new Hair(){ name = hair.text };
+            outfit.shirt = new Shirt(){ name = shirt.text };
+            outfit.pants = new Pants(){ name = pants.text };
+            outfit.shoes = new Shoes(){ name = shoes.text };
+            outfit.wristFront = new WristFront(){ name = wristfont.text };
+            outfit.bangs = new Bangs(){ name = bangs.text };
+            outfit.helmet = new Helmet(){ name = helmet.text };
+            outfit.facial = new Facial(){ name = facial.text };
+            outfit.makeup = new Makeup(){ name = makeup.text };
+            outfit.marks = new Marks(){ name = marks.text };
+            outfit.overshirt = new Overshirt(){ name = overshirt.text };
+            outfit.overpants = new Overpants(){ name = overpants.text };
+            outfit.backhandItem = new BackhandItem(){ name = backhand.text };
+            outfit.hat = new Hat(){ name = hat.text };
+            outfit.pack = new Pack(){ name = pack.text };
 
 
 			GameSparksManager.Instance ().SetOutfit (character_id, outfit, () => {
@@ -643,8 +644,6 @@ public class UIManager : MonoBehaviour {
         create_outfit_bttn.onClick.AddListener (() => {
             Debug.Log("UIM| Clicked On Create Outfit Bttn");
 
-            eyes.readOnly = false;
-            mouth.readOnly = false;
             hair.readOnly = false;
             shirt.readOnly = false;
             pants.readOnly = false;
@@ -672,8 +671,6 @@ public class UIManager : MonoBehaviour {
         get_outfit_bttn.onClick.AddListener (() => {
             Debug.Log("UIM| Clicked On Get Outfit Bttn");
 
-            eyes.readOnly = true;
-            mouth.readOnly = true;
             hair.readOnly = true;
             shirt.readOnly = true;
             pants.readOnly = true;
@@ -694,7 +691,57 @@ public class UIManager : MonoBehaviour {
             set_outfit_bttn.gameObject.SetActive(false);
             set_outfit_panel.SetActive(true);
 
-            GameSparksManager.Instance ().GetOutfit(character_id, (_outfit) => {
+            GameSparksManager.Instance ().GetOutfit(character_id, (_prototypeAdornmnets) => {
+
+                foreach(AdornmentPrototype ad  in _prototypeAdornmnets){
+                    Debug.Log(ad.type+":"+ad.name+"\n url:"+ad.url);
+                    switch(ad.type){
+                        case "hair":
+                            hair.text = ad.url;
+                            break;
+                        case "shirt":
+                            shirt.text = ad.url;
+                            break;
+                        case "pants":
+                            pants.text = ad.url;
+                            break;
+                        case "shoes": 
+                            shoes.text = ad.url;
+                            break;
+                        case "bangs":
+                            bangs.text = ad.url;
+                            break;
+                        case "helmet":
+                            helmet.text = ad.url;
+                            break;
+                        case "facial":
+                            facial.text = ad.url;
+                            break;
+                        case "makeup":
+                            makeup.text = ad.url;
+                            break;
+                        case "marks":
+                            marks.text = ad.url;
+                            break;
+                        case "overshirt":
+                            overshirt.text = ad.url;
+                            break;
+                        case "overpants":
+                            overpants.text = ad.url;
+                            break;
+                        case "hat":
+                            hat.text = ad.url;
+                            break;
+                        case "pack":
+                            pack.text = ad.url;
+                            break;
+
+                    }
+
+
+                }
+
+
             }, (_error) => {
                 Debug.LogError("UIM| "+_error.errorMessage.ToString());
             });

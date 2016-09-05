@@ -47,6 +47,68 @@ public class Scene
 
 }
 
+public class AuthFailed : GameSparksError
+{
+    public string isPop1Player;
+    public string firstname, lastname, has_parent_email, parent_email, memstatus, memdate; 
+    public int age;
+
+    public AuthFailed(GameSparksErrorMessage error, string isPop1Player) : base (error, string.Empty)
+    {
+        if(isPop1Player != null)
+        {
+            this.isPop1Player = isPop1Player;
+        }
+        else
+        {
+            this.isPop1Player = string.Empty;
+        }
+
+        this.errorMessage = error;
+    }
+
+
+    public AuthFailed(GameSparksErrorMessage error, GSData data) : base (error, string.Empty)
+    {
+        isPop1Player = "true";
+        this.errorMessage = error;
+        if(data.GetString("firstname") != null)
+        {
+            this.firstname = data.GetString("firstname");
+        }
+        if(data.GetString("lastname") != null)
+        {
+            lastname = data.GetString("lastname");
+        }
+        if(data.GetString("age") != null)
+        {
+            age = int.Parse(data.GetString("age"));
+        }
+        if(data.GetString("has_parent_email") != null)
+        {
+            has_parent_email = data.GetString("has_parent_email");
+        }
+        if(data.GetString("parent_email") != null)
+        {
+            parent_email = data.GetString("parent_email");
+        }
+        if(data.GetString("memstatus") != null)
+        {
+            memstatus = data.GetString("memstatus");
+        }
+        if(data.GetString("memdate") != null)
+        {
+            memdate = data.GetString("memdate");
+        }
+    }
+
+    public void Print()
+    {
+        Debug.Log("First Name:"+firstname+", LastName:"+lastname+", age:"+age+", has parent email:"+has_parent_email);
+        Debug.Log("Parent:"+parent_email+"Memstatus:"+memstatus+", mem-date:"+memdate);
+    }
+}
+
 
 public class AuthResponse
 {
@@ -96,80 +158,6 @@ public class ParentEmailStatus
     }
 }
 
-
-//public class Adornment
-//{
-//    int adornment_id, assetbundle_id;
-//    string name;
-//    Restriction[] restrictions;
-//
-//    public Adornment(int adornment_id, string name, int assetbundle_id, Restriction[] restrictions)
-//    {
-//        this.adornment_id = adornment_id;
-//        this.assetbundle_id = assetbundle_id;
-//        this.name = name;
-//        this.restrictions = restrictions;
-//    }
-//
-//    public void Print()
-//    {
-//        Debug.Log("ID:" + adornment_id + ", Name:" + name + ", Bundle_ID:" + assetbundle_id + ", Restrictions:" + restrictions.Length);
-//    }
-//
-//    public class Restriction
-//    {
-//        string restriction_type;
-//        int min_level, max_level;
-//
-//        public Restriction(string restriction_type, int min_level, int max_level)
-//        {
-//            this.min_level = min_level;
-//            this.max_level = max_level;
-//            this.restriction_type = restriction_type;
-//        }
-//
-//        public void Print()
-//        {
-//            Debug.Log("Type:" + restriction_type + ", Min Level:" + min_level + ", Max Level:" + max_level);
-//        }
-//    }
-//}
-
-//public class Outfit
-//{
-//    public int outfit_id;
-//    public string skin_color, hair_color;
-//    public string shirt, pants, hair, face_mark, helmet;
-//
-//    public Outfit(int outfit_id, string skin_color, string hair_color, string shirt, string pants, string  hair, string face_mark, string helmet)
-//    {
-//        this.outfit_id = outfit_id;
-//        this.skin_color = skin_color;
-//        this.hair_color = hair_color;
-//        this.shirt = shirt;
-//        this.pants = pants;
-//        this.hair = hair;
-//        this.face_mark = face_mark;
-//        this.helmet = helmet;
-//    }
-//
-//    public Outfit(string skin_color, string hair_color, string shirt, string pants, string  hair, string face_mark, string helmet)
-//    {
-//        this.skin_color = skin_color;
-//        this.hair_color = hair_color;
-//        this.shirt = shirt;
-//        this.pants = pants;
-//        this.hair = hair;
-//        this.face_mark = face_mark;
-//        this.helmet = helmet;
-//    }
-//
-//    public void Print()
-//    {
-//        Debug.Log("ID:" + outfit_id + ", skin:" + skin_color.ToString() + ", hair:" + hair_color.ToString() + ", shirt:" + shirt + ", pants:" + pants + ", hair:" + hair + ", mask:" + face_mark + ", helmet:" + helmet);
-//    }
-//}
-
 public class Outfit {
   
     public bool isPlayerOutfit;
@@ -177,34 +165,109 @@ public class Outfit {
     public Color skinColor, hairColor;
     public bool reactiveEyelids;
 
-
-    public Adornment eyes;
-    public Adornment mouth;
-    public Adornment hair;
-    public Adornment shirt;
-    public Adornment pants;
-    public Adornment shoes;
-  
-    public Adornment wristFront;
-    public Adornment bangs;
-    public Adornment helmet;
-    public Adornment facial;
-    public Adornment makeup;
-    public Adornment marks;
-    public Adornment overshirt;
-    public Adornment overpants;
-    public Adornment backhandItem;
-    public Adornment hat;
-    public Adornment pack;
+    public Hair hair;
+    public Shirt shirt;
+    public Pants pants;
+    public Shoes shoes;
+    public WristFront wristFront;
+    public Bangs bangs;
+    public Helmet helmet;
+    public Facial facial;
+    public Makeup makeup;
+    public Marks marks;
+    public Overshirt overshirt;
+    public Overpants overpants;
+    public BackhandItem backhandItem;
+    public Hat hat;
+    public Pack pack;
 
 
+
+
+    public void Print()
+    {
+        Debug.Log("Hair:"+hair.name+", shirt:"+shirt.name+", pants:"+pants.name+", shoes:"+shoes.name);
+        Debug.Log("Wrist:"+wristFront.name+", bangs:"+bangs.name+", helmet:"+helmet.name+", facial:"+facial.name);
+        Debug.Log("Makeup:"+makeup.name+", marks:"+marks.name+", overshirt:"+overshirt.name+", overpants:"+overpants.name);
+        Debug.Log("BackHandItem:"+backhandItem.name+", hat:"+hat.name+", pack:"+pack.name);
+
+        Debug.Log("Hair:"+hair.asset_bundle_url+", shirt:"+shirt.asset_bundle_url+", pants:"+pants.asset_bundle_url+", shoes:"+shoes.asset_bundle_url);
+        Debug.Log("Wrist:"+wristFront.asset_bundle_url+", bangs:"+bangs.asset_bundle_url+", helmet:"+helmet.asset_bundle_url+", facial:"+facial.asset_bundle_url);
+        Debug.Log("Makeup:"+makeup.asset_bundle_url+", marks:"+marks.asset_bundle_url+", overshirt:"+overshirt.asset_bundle_url+", overpants:"+overpants.asset_bundle_url);
+        Debug.Log("BackHandItem:"+backhandItem.asset_bundle_url+", hat:"+hat.asset_bundle_url+", pack:"+pack.asset_bundle_url);
+    }    
 }
+
+
+public class AdornmentPrototype
+{
+    public string type, name, url;
+}
+
+
+public class BackhandItem : Adornment
+{
+}
+public class Bangs : Adornment
+{
+}
+public class Facial : Adornment
+{
+}
+public class Hair : Adornment
+{
+}
+public class Hat : Adornment
+{
+}
+public class Helmet : Adornment
+{
+}
+public class Makeup : Adornment
+{
+}
+public class Marks : Adornment
+{
+}
+public class Overpants : Adornment
+{
+}
+public class Overshirt : Adornment
+{
+}
+public class Pack : Adornment
+{
+}
+public class Pants : Adornment
+{
+}
+public class Shirt : Adornment
+{
+}
+public class Shoes : Adornment
+{
+}
+public class WristFront : Adornment
+{
+}
+
+
+
+
+
 
 public class Adornment  
 {
     public string asset_bundle_url;
     public string name;
     public bool isAvailable = true;
+
+    public T ToChild<T>() where T : Adornment, new()
+    {
+        T child = new T();
+        child.name = this.name;
+        return child;
+    }
 }
 
 

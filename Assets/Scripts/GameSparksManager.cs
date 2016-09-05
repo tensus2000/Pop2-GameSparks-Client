@@ -205,7 +205,14 @@ public class GameSparksManager : MonoBehaviour
                     {
                         if (onAuthFailed != null)
                         {
-                            onAuthFailed(new AuthFailed(ProcessGSErrors(response.Errors),response.ScriptData.GetString("isPop1")));
+                            if(response.ScriptData.GetGSData("pop1_data") != null)
+                            {
+                                onAuthFailed(new AuthFailed(ProcessGSErrors(response.Errors), response.ScriptData.GetGSData("pop1_data")));
+                            }
+                            else
+                            {
+                                onAuthFailed(new AuthFailed(ProcessGSErrors(response.Errors), response.ScriptData.GetString("isPop1")));
+                            }
                         }
                     }
                 });
@@ -1089,7 +1096,7 @@ public class GameSparksManager : MonoBehaviour
     /// </summary>
     /// <param name="onRequestSuccess">On request success.</param>
     /// <param name="onRequestFailed">On request failed. GameSparksError - enum</param>
-    public void DeleteParentEmailHistory(onRequestSuccess onRequestSuccess, onRequestFailed onRequestFailed)
+    public void DeleteParentEmail(onRequestSuccess onRequestSuccess, onRequestFailed onRequestFailed)
     {
         Debug.Log("GSM| Deleting Parent Email History...");
         new GameSparks.Api.Requests.LogEventRequest().SetEventKey("deleteParentEmail")
@@ -1513,16 +1520,19 @@ public class GameSparksManager : MonoBehaviour
         if (outfit != null)
         {
             GSRequestData outfitData = new GSRequestData();
+            List<GSData> adList = new List<GSData>();
             Debug.Log("GSM| Building GSdata...");
             // using the Outfit type we can iterate through all the fields in Outfit and get the variable names //
             foreach(var field in typeof(Outfit).GetFields())
             {
                 string varName = field.Name;
                 // then we can parse those field-values back to objects to get the names of adornment, and values for any bools, strings or ints //
-                if(field.GetValue(outfit) != null && field.GetValue(outfit).GetType() == typeof(Adornment))
+                if(field.GetValue(outfit) != null && field.GetValue(outfit).GetType().BaseType == typeof(Adornment))
                 {
+                    
                     Adornment adorn =  (Adornment)field.GetValue(outfit);
-                    outfitData.AddString(varName, adorn.name);
+                    adList.Add(new GSRequestData().AddString(varName, adorn.name));
+//                    outfitData.AddString(varName, adorn.name);
                 }
                 // colour are a special case which will be stores with r,g,b values on the server. This makes it easier to parse //
                 // them back to Color objects when the outfit comes back //
@@ -1549,6 +1559,7 @@ public class GameSparksManager : MonoBehaviour
                     outfitData.AddString(varName, field.GetValue(outfit).ToString());
                 }
             }
+            outfitData.AddObjectList("adornments", adList);
 
             new GameSparks.Api.Requests.LogEventRequest().SetEventKey("setOutfit")
                 .SetEventAttribute("character_id", character_id)
@@ -1580,12 +1591,18 @@ public class GameSparksManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// receives a list of adornment-protoypes.
+    /// This gives information about the class (type), the variable name (name) and the url.
+    /// </summary>
+    public delegate void onGetOutfit(List<AdornmentPrototype> adornmentList);
 
-    public delegate void onGetOutfit(Outfit outfit);
-
-
-   
-  
+    /// <summary>
+    /// Returns a list of adornmnets for the outfit.
+    /// </summary>
+    /// <param name="character_id">Character ID</param>
+    /// <param name="onGetOutfit">On get outfit. receives a list of prototype adornments</param>
+    /// <param name="onRequestFailed">On request failed. Receives GameSparksError, contains enum & string errorString</param>
     public void GetOutfit(string character_id, onGetOutfit onGetOutfit, onRequestFailed onRequestFailed)
     {
         Debug.Log("GMS| Fetching Outfit...");
@@ -1596,49 +1613,19 @@ public class GameSparksManager : MonoBehaviour
                 if (!response.HasErrors)
                 {
                     Debug.Log("GSM| Outfit Retrieved....");
-                        Debug.LogWarning(response.ScriptData.JSON);
-
-                    if (onGetOutfit != null && response.ScriptData.GetGSData("outfit") != null)
+                    List<AdornmentPrototype> prototypeList = new List<AdornmentPrototype>();
+                    if (onGetOutfit != null && response.ScriptData.GetGSDataList("outfit") != null)
                     {
-                            Outfit newOutfit = new Outfit();
-
-                            foreach(var field in typeof(Outfit).GetFields())
-                            {
-                                if(response.ScriptData.GetGSData("outfit").ContainsKey(field.Name)){
-
-//                                    if(field.FieldType != null){
-//                                        Debug.Log(field.FieldType);//+"|"+field.GetValue(newOutfit).GetType().ToString());
-////                                    
-//                                    }
-                                    if(field.FieldType == typeof(Adornment)){
-                                        Debug.LogError("Bingo!");
-                                    }
-
-//                                    if(field.GetType() == typeof(string)){
-//                                        string s = response.ScriptData.GetGSData("outfit").GetString(field.Name);
-//                                        Debug.Log(s);
-//                                    }
-
-//                                    field.SetValue(newOutfit, response.ScriptData.GetGSData("outfit").GetString(field.Name));
-
-
-//                                    Debug.LogError(newOutfit.isPlayerOutfit);
-//                                    Debug.Log(field.Name);
-                                }
-
-                            }
-
-
-//                            var type = typeof(Outfit);
-//                            foreach(var a in type.GetProperties()){
-//                                Debug.Log(a.Name);
-//                            }
-//                            foreach(var field in typeof(Outfit).GetFields())
-//                            {
-//                                if(field
-//                            }
-//                            
-//                        onGetOutfit(new Outfit(response.ScriptData.GetGSData("outfit").GetInt("outfit_id").Value, response.ScriptData.GetGSData("outfit").GetString("SkinColor"), response.ScriptData.GetGSData("outfit").GetString("HairColor"), response.ScriptData.GetGSData("outfit").GetString("Shirt"), response.ScriptData.GetGSData("outfit").GetString("Pants"), response.ScriptData.GetGSData("outfit").GetString("Hair"), response.ScriptData.GetGSData("outfit").GetString("FaceMark"), response.ScriptData.GetGSData("outfit").GetString("Helmet")));
+                        foreach(GSData data in response.ScriptData.GetGSDataList("outfit"))
+                        {
+                            prototypeList.Add(new AdornmentPrototype()
+                                    { 
+                                        type = data.GetString("shortCode"), 
+                                        name =  data.GetString("name"), 
+                                        url = data.GetString("url") 
+                                    });
+                        }
+                        onGetOutfit(prototypeList);
                     }
                 }
                 else
@@ -2075,23 +2062,7 @@ namespace GameSparks.Api.Messages
 }
 
 
-public class AuthFailed : GameSparksError
-{
-    public string isPop1Player;
-    public AuthFailed(GameSparksErrorMessage error, string isPop1Player) : base (error, string.Empty)
-    {
-        if(isPop1Player != null)
-        {
-            this.isPop1Player = isPop1Player;
-        }
-        else
-        {
-            this.isPop1Player = string.Empty;
-        }
 
-        this.errorMessage = error;
-    }
-}
 
 
 public class GameSparksError
