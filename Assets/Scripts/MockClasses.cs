@@ -47,116 +47,6 @@ public class Scene
 
 }
 
-public class AuthFailed : GameSparksError
-{
-    public string isPop1Player;
-    public string firstname, lastname, has_parent_email, parent_email, memstatus, memdate; 
-    public int age;
-
-    public AuthFailed(GameSparksErrorMessage error, string isPop1Player) : base (error, string.Empty)
-    {
-        if(isPop1Player != null)
-        {
-            this.isPop1Player = isPop1Player;
-        }
-        else
-        {
-            this.isPop1Player = string.Empty;
-        }
-
-        this.errorMessage = error;
-    }
-
-
-    public AuthFailed(GameSparksErrorMessage error, GSData data) : base (error, string.Empty)
-    {
-        isPop1Player = "true";
-        this.errorMessage = error;
-        if(data.GetString("firstname") != null)
-        {
-            this.firstname = data.GetString("firstname");
-        }
-        if(data.GetString("lastname") != null)
-        {
-            lastname = data.GetString("lastname");
-        }
-        if(data.GetString("age") != null)
-        {
-            age = int.Parse(data.GetString("age"));
-        }
-        if(data.GetString("has_parent_email") != null)
-        {
-            has_parent_email = data.GetString("has_parent_email");
-        }
-        if(data.GetString("parent_email") != null)
-        {
-            parent_email = data.GetString("parent_email");
-        }
-        if(data.GetString("memstatus") != null)
-        {
-            memstatus = data.GetString("memstatus");
-        }
-        if(data.GetString("memdate") != null)
-        {
-            memdate = data.GetString("memdate");
-        }
-    }
-
-    public void Print()
-    {
-        Debug.Log("First Name:"+firstname+", LastName:"+lastname+", age:"+age+", has parent email:"+has_parent_email);
-        Debug.Log("Parent:"+parent_email+"Memstatus:"+memstatus+", mem-date:"+memdate);
-    }
-}
-
-
-public class AuthResponse
-{
-    public string[] characterIDs;
-    public string lastCharacterID;
-    public bool hasParentEmail;
-
-    public AuthResponse(string[] characterIDs, string lastCharacterID, bool hasParentEmail)
-    {
-        this.characterIDs = characterIDs;
-        this.lastCharacterID = lastCharacterID;
-        this.hasParentEmail = hasParentEmail;
-    }
-
-    public void Print()
-    {
-        Debug.Log("Last Char:" + lastCharacterID + ", Characters:" + characterIDs.Length + ", hasParentEmail:" + hasParentEmail);
-    }
-}
-
-
-
-public class ParentEmailStatus
-{
-
-    public ParentEmailStatus(string email, DateTime dateAdded, string status, DateTime verifiedDate)
-    {
-        this.email = email;
-        this.dateAdded = dateAdded;
-        this.status = status;
-        this.verifiedDate = verifiedDate;
-    }
-
-    public ParentEmailStatus(string email, DateTime dateAdded, string status)
-    {
-        this.email = email;
-        this.dateAdded = dateAdded;
-        this.status = status;
-    }
-
-    string email, status;
-    DateTime dateAdded, verifiedDate;
-
-    public void Print()
-    {
-        Debug.Log("Email:" + email + ", Status:" + status + ", Verified:" + verifiedDate + ", Added:" + dateAdded);
-    }
-}
 
 public class Outfit {
   
@@ -198,6 +88,15 @@ public class Outfit {
     }    
 }
 
+public class OutfitPrototype
+{
+    public bool isPlayerOutfit;
+
+    public Color skinColor, hairColor;
+    public bool reactiveEyelids;
+
+    List<AdornmentPrototype> adornmentList;
+}
 
 public class AdornmentPrototype
 {
@@ -262,12 +161,6 @@ public class Adornment
     public string name;
     public bool isAvailable = true;
 
-    public T ToChild<T>() where T : Adornment, new()
-    {
-        T child = new T();
-        child.name = this.name;
-        return child;
-    }
 }
 
 
@@ -411,4 +304,151 @@ public class InboxMessage
     {
         Debug.Log("Message ID: " + messageId + ", Header: " + header + ", Body: " + body + ", Sender ID: " + senderID + ", Sender Name: " + senderName + ", Payload:" + payload.JSON);
     }
+}
+
+
+public class QuestData
+{
+    public QuestData()
+    {
+    }
+
+    public QuestData(string questID, string name, string descrp, bool isActive, bool isComplete)
+    {
+        this.questID = questID;
+        this.name = name;
+        this.description = descrp;
+        this.isActive = isActive;
+        this.isComplete = isComplete;
+    }
+
+    public void SetStages(List<StageData> stages)
+    {
+        this.stages = stages;
+    }
+
+    public void SetRewards(List<string> rewards)
+    {
+        this.rewards = rewards;
+    }
+
+
+    public string questID;
+    public string name;
+    public string description;
+    public bool isActive;
+    public List<StageData> stages;
+    public List<string> rewards;
+    public bool isComplete;
+
+
+
+    public void Print()
+    {
+        Debug.Log("Quest ID:"+questID+", Name:"+name+", isActive:"+isActive+", Complete:"+isComplete);
+        Debug.Log("Description:"+description);
+        if(stages != null)
+        {
+            foreach(StageData stage in stages)
+            {
+                Debug.Log("Stage:"+stage.stageID+", Next Stage:"+stage.nextStageID+", isActive:"+stage.isActive+", Initial:"+stage.isInitial+",isComplete:"+stage.isComplete);
+                if(stage.rewards != null)
+                {
+                    foreach(string reward in stage.rewards)
+                    {
+                        Debug.Log("Stage Reward:"+reward);
+                    }
+                }
+                if(stage.steps != null)
+                {
+                    foreach(QuestStep step in stage.steps)
+                    {
+                        Debug.Log("Steps, ID:"+step.stepID+", ObjectID:"+step.objectID+", ObjectiveID:"+step.objectiveID+", Complete:"+step.isComplete+", Mandatory"+step.mandatory);
+                    }
+                }
+            }   
+        }
+        if(rewards != null)
+        {
+            foreach(string reward in rewards)
+            {
+                Debug.Log("Reward:"+reward);
+            }
+        }
+    }
+}
+
+public class StageData
+{
+    public StageData()
+    {
+    }
+
+
+    public void SetSteps(List<QuestStep> steps)
+    {
+        this.steps = steps;
+    }
+
+    public void SetRewards(List<string> rewards)
+    {
+        this.rewards = rewards;
+    }
+
+    public StageData(string stageID, string nextStageID, string name, bool isActive, bool isComplete, bool isInitial)
+    {
+        this.stageID = stageID;
+        this.nextStageID = nextStageID;
+        this.name = name;
+        this.isActive = isActive;
+        this.isComplete = isComplete;
+        this.isInitial = isInitial;
+    }
+
+    public string stageID;
+    public string nextStageID;
+    public string name;
+    public bool isActive;
+    public List<QuestStep> steps;
+    public List<string> rewards;
+    public bool isComplete;
+    public bool isInitial;
+}
+
+
+public class QuestStep 
+{
+
+    public QuestStep()
+    {
+    }
+
+    public QuestStep(string objectiveID, int count, string stepID, string stepType, bool mandatory, bool isComplete)
+    {
+        this.objectiveID = objectiveID;
+        this.count = count;
+        this.stepID = stepID;
+        this.mandatory = mandatory;
+        this.isComplete = isComplete;
+        this.stepType = stepType;
+    }
+
+    public QuestStep(string objectId, string stepID, string stepType, bool mandatory, bool isComplete)
+    {
+        
+        this.objectID = objectId;
+        this.stepID = stepID;
+        this.mandatory = mandatory;
+        this.isComplete = isComplete;
+        this.stepType = stepType;
+    }
+
+    public string objectiveID;
+    public string objectID;
+    public int count;
+    public string stepID;
+    public string stepType;
+    public bool mandatory;
+    public bool isComplete = false;
+
 }

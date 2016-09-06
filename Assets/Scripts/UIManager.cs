@@ -83,6 +83,11 @@ public class UIManager : MonoBehaviour {
     public Button get_scenes_bttn;
     public InputField get_scenes_island_id;
 
+
+
+    public Button set_quests_bttn, get_quests_bttn;
+
+
 	// Use this for initialization
 	void Start () {
 
@@ -385,9 +390,9 @@ public class UIManager : MonoBehaviour {
 		});
 
         delete_parent_email_bttn.onClick.AddListener (() => {
-            Debug.Log ("UIM| Clicked On Delete Password Button...");
+            Debug.Log ("UIM| Clicked On Delete Parent Email Button...");
             GameSparksManager.Instance ().DeleteParentEmail (() => {
-                Debug.Log ("UIM| Email History Deleted...");
+                Debug.Log ("UIM| Email Deleted...");
             }, (_error) => {
                 Debug.LogError("UIM| "+_error.errorMessage.ToString());
             });
@@ -748,6 +753,48 @@ public class UIManager : MonoBehaviour {
 
         });
 		#endregion
+
+
+        #region Quests
+        StageData stage1 = new StageData("201", "202", "stage 201", true, true, false);
+        stage1.SetRewards(new List<string>(){ "test1", "test2", "test3" });
+        stage1.SetSteps(new List<QuestStep>(){
+            new QuestStep("PickHammer", 10, "1", "AquireObject", false, false),
+            new QuestStep("PickAnAxe", 6, "2", "AquireObject", true, false)
+        });
+
+        StageData stage2 = new StageData("202", "", "stage 202", false, false, false);
+        stage2.SetRewards(new List<string>(){ "test1", "test2", "test3" });
+        stage2.SetSteps(new List<QuestStep>(){
+            new QuestStep("FixThePlane", "2", "CompleteObjective", true, false),
+            new QuestStep("LearnToFly", "3", "CompleteObjective", true, false)
+        });
+
+        QuestData mockQuest = new QuestData("1", "myQuest", "Gobbledygook Quest", true, false);
+        mockQuest.SetRewards(new List<string>(){ "test1", "test2", "test3" });
+        mockQuest.SetStages(new List<StageData>()
+            {
+                stage1, stage2
+            });
+
+        set_quests_bttn.onClick.AddListener (() => {
+        Debug.Log("UIM| Clicked On Set Quest Button...");
+            GameSparksManager.Instance().SaveQuest(character_id, mockQuest, () =>{
+                
+            }, (_error) =>{
+                
+            });
+        });
+
+        get_quests_bttn.onClick.AddListener (() => {
+            Debug.Log("UIM| Clicked On Load Quest Button...");
+            GameSparksManager.Instance().LoadQuest(character_id, "1", (_quest) =>{
+                _quest.Print();
+            }, (_error) =>{
+
+            });
+        });
+        #endregion
 
 	}
 

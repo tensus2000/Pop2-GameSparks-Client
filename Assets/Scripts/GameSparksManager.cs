@@ -1529,10 +1529,8 @@ public class GameSparksManager : MonoBehaviour
                 // then we can parse those field-values back to objects to get the names of adornment, and values for any bools, strings or ints //
                 if(field.GetValue(outfit) != null && field.GetValue(outfit).GetType().BaseType == typeof(Adornment))
                 {
-                    
                     Adornment adorn =  (Adornment)field.GetValue(outfit);
                     adList.Add(new GSRequestData().AddString(varName, adorn.name));
-//                    outfitData.AddString(varName, adorn.name);
                 }
                 // colour are a special case which will be stores with r,g,b values on the server. This makes it easier to parse //
                 // them back to Color objects when the outfit comes back //
@@ -1810,6 +1808,233 @@ public class GameSparksManager : MonoBehaviour
                 }
             });
     }
+
+    #endregion
+
+
+    #region QUEST
+
+
+    public delegate void onLoadQuest(QuestData quest);
+
+
+    public void LoadQuest(string character_id, string quest_id,  onLoadQuest onLoadQuest, onRequestFailed onRequestFailed)
+    {
+        Debug.Log("GMS| Fetching Quest Info...");
+        new GameSparks.Api.Requests.LogEventRequest().SetEventKey("loadQuest")
+            .SetEventAttribute("character_id", character_id)
+            .SetEventAttribute("quest_id", quest_id)
+            .SetDurable(true)
+            .Send((response) =>
+                {
+                    if (!response.HasErrors)
+                    {
+                        if(onLoadQuest != null && response.ScriptData.GetGSData("questProgress") != null)
+                        {
+                            GSData questData = response.ScriptData.GetGSData("questProgress");
+                            QuestData newQuest = new QuestData();
+
+                            foreach(var questField in typeof(QuestData).GetFields())
+                            {
+                                if(questField.FieldType == typeof(string))
+                                {
+                                    questField.SetValue(newQuest, questData.GetString(questField.Name));
+                                }
+                                else if(questField.FieldType == typeof(bool))
+                                {
+                                    questField.SetValue(newQuest, questData.GetBoolean(questField.Name).GetValueOrDefault(false));
+                                }
+                                else if(questField.FieldType == typeof(int))
+                                {
+                                    questField.SetValue(newQuest, questData.GetNumber(questField.Name).GetValueOrDefault(0));
+                                }
+                                else
+                                {
+                                    if(questField.FieldType == typeof(List<string>))
+                                    {
+                                        questField.SetValue(newQuest, questData.GetStringList(questField.Name));
+                                    }
+                                    else if(questField.FieldType == typeof(List<StageData>))
+                                    {
+                                        List<GSData> respStageList = questData.GetGSDataList("stages");
+                                        List<StageData> stageList = new List<StageData>();
+                                        foreach(GSData gs_stage in respStageList)
+                                        {
+                                            StageData stage = new StageData();
+                                            foreach(var stageField in typeof(StageData).GetFields())
+                                            {
+                                                if(stageField.FieldType == typeof(string))
+                                                {
+                                                    stageField.SetValue(stage, gs_stage.GetString(stageField.Name));
+                                                }
+                                                else if(stageField.FieldType == typeof(bool))
+                                                {
+                                                    stageField.SetValue(stage, gs_stage.GetBoolean(stageField.Name).GetValueOrDefault(false));
+                                                }
+                                                else if(stageField.FieldType == typeof(int))
+                                                {
+                                                    stageField.SetValue(stage, gs_stage.GetNumber(stageField.Name).GetValueOrDefault(0));
+                                                }
+                                                else
+                                                {
+                                                    if(stageField.FieldType == typeof(List<string>))
+                                                    {
+                                                        stageField.SetValue(stage, gs_stage.GetStringList(stageField.Name));
+                                                    }
+                                                    else if(stageField.FieldType == typeof(List<QuestStep>))
+                                                    {
+                                                        List<GSData> respStepList = gs_stage.GetGSDataList("steps");
+                                                        List<QuestStep> stepList = new List<QuestStep>();
+                                                        foreach(GSData gs_step in respStepList)
+                                                        {
+                                                            QuestStep step = new QuestStep();
+                                                            foreach(var stepField in typeof(QuestStep).GetFields())
+                                                            {
+                                                                if(stepField.FieldType == typeof(string))
+                                                                {
+                                                                    stepField.SetValue(step, gs_step.GetString(stepField.Name));
+                                                                }
+                                                            }
+                                                            stepList.Add(step);
+                                                        }
+                                                        stage.SetSteps(stepList);
+                                                    }
+                                                }
+                                            }
+                                            stageList.Add(stage);
+                                        }
+                                        newQuest.SetStages(stageList);
+                                    }
+                                }
+                            }
+                            onLoadQuest(newQuest);
+                        }
+                    }
+                    else
+                    {
+                        if (onRequestFailed != null)
+                        {
+                            onRequestFailed(new GameSparksError(ProcessGSErrors(response.Errors)));
+                        }
+                    }
+                });
+    }
+
+
+    public void SaveQuest(string character_id, QuestData quest,  onRequestSuccess onRequestSuccess, onRequestFailed onRequestFailed)
+    {
+        GSRequestData gsQuestData = new GSRequestData();
+
+        foreach(var questField in typeof(QuestData).GetFields())
+        {
+            if(questField.GetValue(quest) != null && questField.GetValue(quest).GetType() == typeof(bool))
+            {
+                gsQuestData.AddBoolean(questField.Name, bool.Parse(questField.GetValue(quest).ToString()));
+            }
+            else if(questField.GetValue(quest) != null && questField.GetValue(quest).GetType() == typeof(int))
+            {
+                gsQuestData.AddNumber(questField.Name, int.Parse(questField.GetValue(quest).ToString()));
+            }
+            else if(questField.GetValue(quest) != null && questField.GetValue(quest).GetType() == typeof(string))
+            {
+                gsQuestData.AddString(questField.Name, questField.GetValue(quest).ToString());
+            }
+            else
+            {
+                if(questField.FieldType == typeof(List<StageData>))
+                {
+                    List<GSData> stageDataList = new List<GSData>();
+                    List<StageData> questStages = questField.GetValue(quest) as List<StageData>;
+                    foreach(StageData stage in questStages)
+                    {
+                        GSRequestData stageData = new GSRequestData();
+                        foreach(var stageField in typeof(StageData).GetFields())
+                        {
+                            if(stageField.GetValue(stage) != null && stageField.GetValue(stage).GetType() == typeof(string))
+                            {
+                                stageData.AddString(stageField.Name, stageField.GetValue(stage).ToString());
+                            }
+                            else if(stageField.GetValue(stage) != null && stageField.GetValue(stage).GetType() == typeof(bool))
+                            {
+                                stageData.AddBoolean(stageField.Name, bool.Parse(stageField.GetValue(stage).ToString()));
+                            }
+                            else if(stageField.GetValue(stage) != null && stageField.GetValue(stage).GetType() == typeof(int))
+                            {
+                                stageData.AddNumber(stageField.Name, int.Parse(stageField.GetValue(stage).ToString()));
+                            }
+                            else
+                            {
+                                if(stageField.FieldType == typeof(List<QuestStep>))
+                                {
+                                    List<GSData> stepDataList = new List<GSData>();
+                                    List<QuestStep> stageSteps = stageField.GetValue(stage) as List<QuestStep>;
+                                    foreach(QuestStep step in stageSteps)
+                                    {
+                                        GSRequestData stepData = new GSRequestData();
+                                        foreach(var stepField in typeof(QuestStep).GetFields())
+                                        {
+                                            if(stepField.GetValue(step) != null && stepField.GetValue(step).GetType() == typeof(string))
+                                            {
+                                                stepData.AddString(stepField.Name, stepField.GetValue(step).ToString());
+                                            }
+                                            else if(stepField.GetValue(step) != null && stepField.GetValue(step).GetType() == typeof(bool))
+                                            {
+                                                stepData.AddBoolean(stepField.Name, bool.Parse(stepField.GetValue(step).ToString()));
+                                            }
+                                            else if(stepField.GetValue(step) != null && stepField.GetValue(step).GetType() == typeof(int))
+                                            {
+                                                stepData.AddNumber(stepField.Name, int.Parse(stepField.GetValue(step).ToString()));
+                                            }
+                                        }
+                                        stepDataList.Add(stepData);
+                                    }
+                                    stageData.AddObjectList(stageField.Name, stepDataList);
+                                }
+                                else if(stageField.FieldType == typeof(List<string>))
+                                {
+                                    stageData.AddStringList(stageField.Name, stageField.GetValue(stage) as List<string>);
+                                }
+                            }
+                        }
+                        stageDataList.Add(stageData);
+                    }
+                    gsQuestData.AddObjectList(questField.Name, stageDataList);
+                }
+                else if(questField.FieldType == typeof(List<string>))
+                {
+                    gsQuestData.AddStringList(questField.Name, questField.GetValue(quest) as List<string>);
+                }
+            }
+        }
+        Debug.LogWarning(gsQuestData.JSON);
+
+
+        Debug.Log("GMS| Saving Quest Info...");
+        new GameSparks.Api.Requests.LogEventRequest().SetEventKey("saveQuest")
+            .SetEventAttribute("character_id", character_id)
+            .SetEventAttribute("quest_id", quest.questID)
+            .SetEventAttribute("questData", gsQuestData)
+            .SetDurable(true)
+            .Send((response) =>
+                {
+                    if (!response.HasErrors)
+                    {
+                        Debug.Log("GSM| Quest Data Set....");
+                        if (onRequestSuccess != null)
+                        {
+                            onRequestSuccess();
+                        }
+                    }
+                    else
+                    {
+                        if (onRequestFailed != null)
+                        {
+                            onRequestFailed(new GameSparksError(ProcessGSErrors(response.Errors)));
+                        }
+                    }
+                });
+    }
+
 
     #endregion
 
@@ -2116,4 +2341,116 @@ public enum GameSparksErrorMessage
     no_inventory,
     no_level_definition,
 
+}
+
+
+public class AuthFailed : GameSparksError
+{
+    public string isPop1Player;
+    public string firstname, lastname, has_parent_email, parent_email, memstatus, memdate; 
+    public int age;
+
+    public AuthFailed(GameSparksErrorMessage error, string isPop1Player) : base (error, string.Empty)
+    {
+        if(isPop1Player != null)
+        {
+            this.isPop1Player = isPop1Player;
+        }
+        else
+        {
+            this.isPop1Player = string.Empty;
+        }
+
+        this.errorMessage = error;
+    }
+
+
+    public AuthFailed(GameSparksErrorMessage error, GSData data) : base (error, string.Empty)
+    {
+        isPop1Player = "true";
+        this.errorMessage = error;
+        if(data.GetString("firstname") != null)
+        {
+            this.firstname = data.GetString("firstname");
+        }
+        if(data.GetString("lastname") != null)
+        {
+            lastname = data.GetString("lastname");
+        }
+        if(data.GetString("age") != null)
+        {
+            age = int.Parse(data.GetString("age"));
+        }
+        if(data.GetString("has_parent_email") != null)
+        {
+            has_parent_email = data.GetString("has_parent_email");
+        }
+        if(data.GetString("parent_email") != null)
+        {
+            parent_email = data.GetString("parent_email");
+        }
+        if(data.GetString("memstatus") != null)
+        {
+            memstatus = data.GetString("memstatus");
+        }
+        if(data.GetString("memdate") != null)
+        {
+            memdate = data.GetString("memdate");
+        }
+    }
+
+    public void Print()
+    {
+        Debug.Log("First Name:"+firstname+", LastName:"+lastname+", age:"+age+", has parent email:"+has_parent_email);
+        Debug.Log("Parent:"+parent_email+"Memstatus:"+memstatus+", mem-date:"+memdate);
+    }
+}
+
+
+public class AuthResponse
+{
+    public string[] characterIDs;
+    public string lastCharacterID;
+    public bool hasParentEmail;
+
+    public AuthResponse(string[] characterIDs, string lastCharacterID, bool hasParentEmail)
+    {
+        this.characterIDs = characterIDs;
+        this.lastCharacterID = lastCharacterID;
+        this.hasParentEmail = hasParentEmail;
+    }
+
+    public void Print()
+    {
+        Debug.Log("Last Char:" + lastCharacterID + ", Characters:" + characterIDs.Length + ", hasParentEmail:" + hasParentEmail);
+    }
+}
+
+
+
+public class ParentEmailStatus
+{
+
+    public ParentEmailStatus(string email, DateTime dateAdded, string status, DateTime verifiedDate)
+    {
+        this.email = email;
+        this.dateAdded = dateAdded;
+        this.status = status;
+        this.verifiedDate = verifiedDate;
+    }
+
+    public ParentEmailStatus(string email, DateTime dateAdded, string status)
+    {
+        this.email = email;
+        this.dateAdded = dateAdded;
+        this.status = status;
+    }
+
+    string email, status;
+    DateTime dateAdded, verifiedDate;
+
+    public void Print()
+    {
+        Debug.Log("Email:" + email + ", Status:" + status + ", Verified:" + verifiedDate + ", Added:" + dateAdded);
+    }
 }

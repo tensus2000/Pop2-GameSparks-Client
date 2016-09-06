@@ -1,11 +1,10 @@
 ﻿<Properties StartupItem="Assembly-CSharp.csproj" RefactoringSettings.EnableRefactorings="True">
   <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" PreferredExecutionTarget="Unity.Instance.Unity Editor" />
-  <MonoDevelop.Ide.Workbench ActiveDocument="Assets/Scripts/GameSparksManager.cs">
+  <MonoDevelop.Ide.Workbench ActiveDocument="Assets/Scripts/MockClasses.cs">
     <Files>
-      <File FileName="Assets/Scripts/GameSparksManager.cs" Line="214" Column="33" />
-      <File FileName="Assets/Scripts/MockClasses.cs" Line="107" Column="11" />
-      <File FileName="Assets/Scripts/UIManager.cs" Line="198" Column="1" />
-      <File FileName="../../FEN SVN/Source/Assets/Scripts/GameSparksManager.cs" Line="1088" Column="34" />
+      <File FileName="Assets/Scripts/GameSparksManager.cs" Line="1910" Column="51" />
+      <File FileName="Assets/Scripts/MockClasses.cs" Line="344" Column="5" />
+      <File FileName="Assets/Scripts/UIManager.cs" Line="792" Column="32" />
     </Files>
   </MonoDevelop.Ide.Workbench>
   <MonoDevelop.Ide.DebuggingService.Breakpoints>
