@@ -1,11 +1,9 @@
-﻿using UnityEngine;
-using System.Collections;
+using UnityEngine;
 using UnityEngine.UI;
 using System.Collections.Generic;
 using GameSparks.Core;
 using GameSparks.Api.Messages;
 using GameSparks.Api;
-using System;
 
 
 /// <summary>
@@ -22,9 +20,9 @@ public class UIManager : MonoBehaviour {
 	private Queue<string> myLogQueue = new Queue<string>();
 	private string myLog;
 
-	public GameObject items, scenes, scene_states, menu, playerDetails, inbox, islands, characters, outfits, non_auth;
+	public GameObject items, scenes, scene_states, menu, playerDetails, inbox, islands, characters, outfits, non_auth, quests;
 
-    public Button goto_nonAuth_bttn, goto_scenes_bttn, goto_sceneState_bttn, goto_characters_bttn, goto_outfits_bttn, goto_islands_bttn, goto_chars_bttn, goto_items_bttn, goto_player_bttn, goTo_player_inbox, goTo_menu_bttn1, goTo_menu_bttn2, goTo_menu_bttn3, goTo_menu_bttn4, goTo_menu_bttn5, goTo_menu_bttn6, goTo_menu_bttn7, goTo_menu_bttn8, goTo_menu_bttn9;
+    public Button goto_quests_bttn, goto_nonAuth_bttn, goto_scenes_bttn, goto_sceneState_bttn, goto_characters_bttn, goto_outfits_bttn, goto_islands_bttn, goto_chars_bttn, goto_items_bttn, goto_player_bttn, goTo_player_inbox, goTo_menu_bttn1, goTo_menu_bttn2, goTo_menu_bttn3, goTo_menu_bttn4, goTo_menu_bttn5, goTo_menu_bttn6, goTo_menu_bttn7, goTo_menu_bttn8, goTo_menu_bttn9, goTo_menu_bttn10;
 
 	public Button clearLog_bttn;
 	public InputField auth_password_input, auth_username_txt;
@@ -38,8 +36,11 @@ public class UIManager : MonoBehaviour {
 
 	public GameObject blockout_panel;
 
-	public Button parent_email_bttn, get_parent_emai_bttn, delete_parent_email_bttn;
-	public InputField parent_email_input;
+    // PLAYER OPTIONS //
+	public Button parent_email_bttn, get_parent_emai_bttn, delete_parent_email_bttn, change_password_bttn, check_username_bttn;
+	public InputField parent_email_input, old_password, new_password, check_username, check_username_suggestions;
+
+
 
 	public Button send_private_message_bttn;
 	public InputField message_header, message_body, message_recipient;
@@ -165,8 +166,12 @@ public class UIManager : MonoBehaviour {
             Debug.Log ("Selected Scenes Options...");
             BringPanelForward (scenes);
         });
+        goto_quests_bttn.onClick.AddListener (() => {
+            Debug.Log ("Selected Quests Options...");
+            BringPanelForward (quests);
+        });
 
-        goTo_menu_bttn2.onClick = goTo_menu_bttn3.onClick = goTo_menu_bttn9.onClick = goTo_menu_bttn4.onClick = goTo_menu_bttn5.onClick = goTo_menu_bttn8.onClick = goTo_menu_bttn6.onClick = goTo_menu_bttn7.onClick = goTo_menu_bttn1.onClick;
+        goTo_menu_bttn10.onClick = goTo_menu_bttn2.onClick = goTo_menu_bttn3.onClick = goTo_menu_bttn9.onClick = goTo_menu_bttn4.onClick = goTo_menu_bttn5.onClick = goTo_menu_bttn8.onClick = goTo_menu_bttn6.onClick = goTo_menu_bttn7.onClick = goTo_menu_bttn1.onClick;
 		#endregion
 
 		#region AUTHENTICATION & REGISTRATION EXAMPLES
@@ -190,11 +195,12 @@ public class UIManager : MonoBehaviour {
 			
 
 				server_version_txt.text = "Server Version: Requesting....";
-				GameSparksManager.Instance ().GetServerVersion ((_version) => {
+				GameSparksManager.Instance ().GetServerVersion ((_version, _date) => {
+                    Debug.Log("UIM| Version Date:"+_date.ToString());
 					server_version_txt.text = "Server Version: " + _version;
 					blockout_panel.SetActive (false);
 				}, (_error) => {
-					Debug.LogError("UIM| "+_error.ToString());
+                    Debug.LogError("UIM| Error:"+_error.errorMessage.ToString());
 				});
             }, (_authFailed) => {
                 Debug.LogError("UIM| "+_authFailed.errorMessage.ToString());
@@ -214,18 +220,32 @@ public class UIManager : MonoBehaviour {
 				// here is an example of how we can use the event callbacks. //
 				// in this case, i will remove the menu-option blocker if the player has authenticated successfully //
 				server_version_txt.text = "Server Version: Requesting....";
-				GameSparksManager.Instance ().GetServerVersion ((_version) => {
+				GameSparksManager.Instance ().GetServerVersion ((_version, _date) => {
+                    Debug.Log("UIM| Version Date:"+_date.ToString());
 					server_version_txt.text = "Server Version: " + _version;
 					blockout_panel.SetActive (false);
 				}, (_error)=>{
 					Debug.LogError("UIM| "+_error.ToString());
 				});
-				}, (_error, _suggestedName) => {
-    				Debug.LogError ("UIM| Error: " + _error.ToString());
-    				Debug.LogWarning ("UIM| Suggested Username: " + _suggestedName);
+				}, (_error) => {
+                Debug.LogError ("UIM| Error: " + _error.errorMessage.ToString());
 
 			});
 		});
+
+        check_username_bttn.onClick.AddListener (() => {
+            Debug.Log ("UIM| Clicked on registration button");
+            GameSparksManager.Instance ().CheckUsername(check_username.text, int.Parse(check_username_suggestions.text),  (_validName) => {
+                Debug.Log("UIM| Username Valid: "+_validName);
+            }, (_suggestedNames) => {
+                for(int i  = 0; i < _suggestedNames.Length; i++)
+                {
+                    Debug.Log("UIM| Suggested Name ["+(i+1)+"] ->"+_suggestedNames[i]);
+                }
+
+            });
+        });
+
 		#endregion
 
 
@@ -243,7 +263,7 @@ public class UIManager : MonoBehaviour {
 
 		use_item_bttn.onClick.AddListener (() => {
 			Debug.Log ("UIM| Clicked on Use-Item button");
-			GameSparksManager.Instance ().UseItem (character_id, int.Parse (use_item_id.text), (_item_id) => {
+			GameSparksManager.Instance ().UseItem (character_id, use_item_id.text, (_item_id) => {
 				Debug.Log ("Item ID: " + _item_id);
 				// and request the inventory again to make sure it was picked up //
 				GameSparksManager.Instance ().GetInventory (character_id, null, null);
@@ -254,7 +274,7 @@ public class UIManager : MonoBehaviour {
 
 		equip_item_bttn.onClick.AddListener (() => {
 			Debug.Log ("UIM| Clicked on Equip-Item button");
-			GameSparksManager.Instance ().EquipItem (character_id, int.Parse (equip_item_id.text), equip_location.text, (_item_id) => {
+			GameSparksManager.Instance ().EquipItem (character_id, equip_item_id.text, equip_location.text, (_item_id) => {
 				Debug.Log ("Item ID: " + _item_id);
 				// and request the inventory again to make sure it was picked up //
 				GameSparksManager.Instance ().GetInventory (character_id, null, null);
@@ -265,7 +285,7 @@ public class UIManager : MonoBehaviour {
 			
 		add_item_bttn.onClick.AddListener (() => {
 			Debug.Log ("UIM| Clicked on Pickup-Item button");
-			GameSparksManager.Instance ().PickUpItem (character_id, int.Parse (pickup_item_id.text), int.Parse (pickup_scene_id.text), (_itemID) => {
+			GameSparksManager.Instance ().PickUpItem (character_id, pickup_item_id.text, pickup_scene_id.text, (_itemID) => {
 				Debug.Log ("UIM| Picked Up Item:" + _itemID);
 				// and request the inventory again to make sure it was picked up //
 				GameSparksManager.Instance ().GetInventory (character_id, null, null);
@@ -276,7 +296,7 @@ public class UIManager : MonoBehaviour {
 
 		remove_item_bttn.onClick.AddListener (() => {
 			Debug.Log ("UIM| Clicked on Drop-Item button");
-			GameSparksManager.Instance ().RemoveItem (character_id, int.Parse (pickup_item_id.text), (_itemID) => {
+			GameSparksManager.Instance ().RemoveItem (character_id, pickup_item_id.text, (_itemID) => {
 				Debug.Log ("UIM| Picked Up Item:" + _itemID);
 				// and request the inventory again to make sure it was picked up //
 				GameSparksManager.Instance ().GetInventory (character_id, null, null);
@@ -290,10 +310,10 @@ public class UIManager : MonoBehaviour {
 		#region SCENE EXAMPLES
 		getScene_bttn.onClick.AddListener (() => {
 			Debug.Log ("UIM| Clicked on get scene button");
-			GameSparksManager.Instance ().GetSceneState (character_id, int.Parse (scene_island_id.text), int.Parse (scene_scene_id.text), (_sceneState) => {
+			GameSparksManager.Instance ().GetSceneState (character_id, scene_island_id.text, scene_scene_id.text, (_states) => {
 				// callback will have the scene-state which was returned //
 				// you can use it from here //
-				_sceneState.Print ();
+				_states.Print ();
 			}, (_error) => {
                 Debug.LogError("UIM| "+_error.errorMessage.ToString());
 
@@ -302,7 +322,7 @@ public class UIManager : MonoBehaviour {
 
 		enterScene_bttn.onClick.AddListener (() => {
 			Debug.Log ("UIM| Clicked on Enter Scene Button");
-			GameSparksManager.Instance ().EnterScene (character_id, int.Parse (scene_island_id.text), (island_id, scene_id) => {
+			GameSparksManager.Instance ().EnterScene (character_id, scene_island_id.text, (island_id, scene_id) => {
 				// on entered scene successfully //
 				Debug.Log ("Scene ID: " + scene_id + ", Island ID: " + island_id);
 			}, (_error) => {
@@ -313,13 +333,15 @@ public class UIManager : MonoBehaviour {
 
 		setScene_bttn.onClick.AddListener (() => {
 			Debug.Log ("UIM| Clicked on set scene button");
-			SceneState newScene = new SceneState (set_type.text, set_direction.text, int.Parse (set_x.text), int.Parse (set_y.text));
-			GameSparksManager.Instance ().SetSceneState (character_id, int.Parse (set_island_id.text), int.Parse (set_scene_id.text), newScene, null, null);
+			SceneState newScene = new PositionState (set_type.text, set_direction.text, int.Parse (set_x.text), int.Parse (set_y.text));
+            StateData newStates = new StateData();
+            newStates.addState(newScene);
+            GameSparksManager.Instance ().SetSceneState (character_id, set_island_id.text, set_scene_id.text, newStates, null, null);
 		});
 
         get_scenes_bttn.onClick.AddListener (() => {
             Debug.Log ("UIM| Clicked on Enter Scene Button");
-            GameSparksManager.Instance ().GetScenes (character_id, int.Parse(get_scenes_island_id.text), (_sceneList) => {
+            GameSparksManager.Instance ().GetScenes (character_id, get_scenes_island_id.text, (_sceneList) => {
                 // on entered scene successfully //
                 for(int i = 0; i < _sceneList.Length; i++){
                     _sceneList[i].Print();
@@ -350,14 +372,16 @@ public class UIManager : MonoBehaviour {
 		#endregion
 
 		#region PLAYER ACCOUNT EXAMPLES
-//		reset_email_bttn.onClick.AddListener (() => {
-//			Debug.Log ("UIM| Clicked On Reset Password Button...");
-//			GameSparksManager.Instance ().SendResetPasswordEmail(reset_email_input.text, (_newPassword) => {
-//				// password set //
-//			}, (_errorString) => {
-//				
-//			});
-//		});
+
+        change_password_bttn.onClick.AddListener (() => {
+            Debug.Log ("UIM| Clicked On Get Parent Email Button...");
+            GameSparksManager.Instance ().ChangePassword(old_password.text, new_password.text, () => {
+                Debug.Log("UIM| Password Set...");
+            }, (_error) => {
+                Debug.LogError("UIM| "+_error.errorMessage.ToString());
+            });
+        });
+
 		get_parent_emai_bttn.onClick.AddListener (() => {
 			Debug.Log ("UIM| Clicked On Get Parent Email Button...");
 			GameSparksManager.Instance ().GetParentEmailStatus ((_parentEmailList) => {
@@ -369,7 +393,7 @@ public class UIManager : MonoBehaviour {
                 Debug.LogError("UIM| "+_error.errorMessage.ToString());
 			});
 		});
-//
+
 		parent_email_bttn.onClick.AddListener (() => {
 			Debug.Log ("UIM| Clicked On Parent Email Button...");
 			GameSparksManager.Instance ().RegisterParentEmail (parent_email_input.text, () => {
@@ -462,7 +486,7 @@ public class UIManager : MonoBehaviour {
 
 		visit_island_bttn.onClick.AddListener (() => {
 			Debug.Log ("UIM| Clicked On Visit Island Button...");
-			GameSparksManager.Instance ().VisitIsland (character_id, int.Parse (player_island_id.text), (_islandID) => {
+			GameSparksManager.Instance ().VisitIsland (character_id, player_island_id.text, (_islandID) => {
 				Debug.Log ("Island ID:" + _islandID);
 
 			}, (_error) => { // if there was an error, there will be "error":{"@visitIsland":"invalid-island-id"}
@@ -472,7 +496,7 @@ public class UIManager : MonoBehaviour {
 
 		leave_island_bttn.onClick.AddListener (() => {
 			Debug.Log ("UIM| Clicked On Leave Island Button...");
-			GameSparksManager.Instance ().LeaveIsland (character_id, int.Parse (player_island_id.text), () => {
+			GameSparksManager.Instance ().LeaveIsland (character_id, player_island_id.text, () => {
 				// visit to island successful //
 			}, (_error) => {
                 Debug.LogError("UIM| "+_error.errorMessage.ToString());
@@ -481,7 +505,7 @@ public class UIManager : MonoBehaviour {
 
 		complete_island_bttn.onClick.AddListener (() => {
 			Debug.Log ("UIM| Clicked On Complete Island Button...");
-			GameSparksManager.Instance ().CompleteIsland (character_id, int.Parse (player_island_id.text), () => {
+			GameSparksManager.Instance ().CompleteIsland (character_id, player_island_id.text, () => {
 				// player completed island
 			}, (_error) => {
                 Debug.LogError("UIM| "+_error.errorMessage.ToString());
@@ -536,60 +560,6 @@ public class UIManager : MonoBehaviour {
 		#endregion 
 
 		#region CHARACTER OUTFIT EXAMPLES
-//		set_fixed_costume_bttn.onClick.AddListener (() => {
-//			Debug.Log ("UIM| Clicked On Set Fixed Costume Button...");
-//			GameSparksManager.Instance ().SetFixedCostume (character_id, int.Parse (fixed_costume_id.text), (_costume_id) => {
-//				Debug.Log ("UIM| Costume ID:" + _costume_id);
-//			}, (_error) => {
-//                Debug.LogError("UIM| "+_error.errorMessage.ToString());
-//			});
-//		});
-//
-//		is_adornments_available_bttn.onClick.AddListener (() => {
-//			Debug.Log ("UIM| Clicked On Is Adornment Available Button...");
-//			GameSparksManager.Instance ().IsAdornmentAvailable (character_id, int.Parse (check_adornment_id.text), (_isAvailable) => {
-//				if (_isAvailable) {
-//					Debug.Log ("UIM| Adornment Is Available...");
-//				} else {
-//					Debug.Log ("UIM| Adornment Is UnAvailable...");
-//				}
-//
-//			}, (_error) => {
-//                Debug.LogError("UIM| "+_error.errorMessage.ToString());
-//			});
-//		});
-
-		// --> EXAMPLE, BELOW IS AND EXAMPLE OF HOW TO REQUEST MULTIPLE ADORNMENTS BY ID //
-
-//		get_adornments_bttn.onClick.AddListener (() => {
-//			Debug.Log("UIM| Clicked On Get Adornments Button...");
-//			GameSparksManager.Instance().GetAdornments(new List<int>(){ 0,1,2,3,4,5}, (_adornments)=>{
-//				foreach(Adornment ad  in _adornments){
-//					ad.Print();
-//				}
-//			}, (_errorString)=>{
-//				
-//			});
-//		});
-
-
-//		get_adornment_bttn.onClick.AddListener (() => {
-//			Debug.Log ("UIM| Clicked On Get Adornment Button...");
-//			GameSparksManager.Instance ().GetAdornment (int.Parse (check_adornment_id.text), (_adornment) => {
-//				_adornment.Print ();
-//			}, (_error) => {
-//                Debug.LogError("UIM| "+_error.errorMessage.ToString());
-//			});
-//
-//		});
-//		get_outfit_bttn.onClick.AddListener (() => {
-//			Debug.Log ("UIM| Clicked On Get Outfit Button...");
-//			GameSparksManager.Instance ().GetOutfit (character_id, (_outfit) => {
-//				_outfit.Print ();
-//			}, (_error) => {
-//                Debug.LogError("UIM| "+_error.errorMessage.ToString());
-//			});
-//		});
 		set_outfit_bttn.onClick.AddListener (() => {
 			Debug.Log ("UIM| Clicked On Set Outfit Button...");
 
@@ -696,9 +666,10 @@ public class UIManager : MonoBehaviour {
             set_outfit_bttn.gameObject.SetActive(false);
             set_outfit_panel.SetActive(true);
 
-            GameSparksManager.Instance ().GetOutfit(character_id, (_prototypeAdornmnets) => {
+            GameSparksManager.Instance ().GetOutfit(character_id, (_outfitPrototype) => {
 
-                foreach(AdornmentPrototype ad  in _prototypeAdornmnets){
+                foreach(AdornmentPrototype ad  in _outfitPrototype.adornmentList)
+                {
                     Debug.Log(ad.type+":"+ad.name+"\n url:"+ad.url);
                     switch(ad.type){
                         case "hair":
@@ -742,9 +713,11 @@ public class UIManager : MonoBehaviour {
                             break;
 
                     }
-
-
                 }
+                Debug.Log("Hair color: " + _outfitPrototype.hairColor.ToString());
+                Debug.Log("Skin color: " + _outfitPrototype.skinColor.ToString());
+                Debug.Log("isPlayerOutfit: " + _outfitPrototype.isPlayerOutfit);
+                Debug.Log("reactiveEyelids: " + _outfitPrototype.reactiveEyelids);
 
 
             }, (_error) => {

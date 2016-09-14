@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections;
 using GameSparks.Core;
 using System;
@@ -47,14 +47,12 @@ public class Scene
 
 }
 
-
+[Serializable()]
 public class Outfit {
   
     public bool isPlayerOutfit;
-
     public Color skinColor, hairColor;
     public bool reactiveEyelids;
-
     public Hair hair;
     public Shirt shirt;
     public Pants pants;
@@ -95,7 +93,12 @@ public class OutfitPrototype
     public Color skinColor, hairColor;
     public bool reactiveEyelids;
 
-    List<AdornmentPrototype> adornmentList;
+    public List<AdornmentPrototype> adornmentList;
+
+    public OutfitPrototype()
+    {
+        adornmentList = new List<AdornmentPrototype>();
+    }
 }
 
 public class AdornmentPrototype
@@ -150,11 +153,7 @@ public class WristFront : Adornment
 {
 }
 
-
-
-
-
-
+[Serializable()]
 public class Adornment  
 {
     public string asset_bundle_url;
@@ -187,13 +186,60 @@ public class Item
     }
 }
 
-
-public class SceneState
+public class StateData
 {
-    string type, direction;
+    public List<SceneState> states;
+
+    public StateData()
+    {
+        states = new List<SceneState>();
+    }
+
+    public void addState(SceneState state)
+    {
+        states.Add(state);
+    }
+
+    public GSRequestData ToGSData()
+    {
+        GSRequestData data = new GSRequestData();
+
+        List<GSData> dataList = new List<GSData>();
+
+        foreach (SceneState state in states)
+        {
+            dataList.Add(state.ToGSData());
+        }
+
+        data.AddObjectList("list", dataList);
+
+        return data;
+    }
+
+    public void Print()
+    {
+        foreach (SceneState state in states)
+        {
+            state.Print();
+        }
+    }
+}
+
+
+public abstract class SceneState
+{
+    public string type;
+
+    public abstract GSRequestData ToGSData();
+    public abstract void Print();
+}
+
+public class PositionState : SceneState
+{
+    string direction;
     int lastx, lasty;
 
-    public SceneState(string type, string direction, int lastx, int lasty)
+    public PositionState(string type, string direction, int lastx, int lasty)
     {
         this.type = type;
         this.direction = direction;
@@ -201,18 +247,42 @@ public class SceneState
         this.lasty = lasty;
     }
 
-    public void Print()
+    public override void Print()
     {
         Debug.Log("Type:" + type + ", Direction:" + direction + ", LastX:" + lastx + ", LastY:" + lasty);
     }
 
-    public GSRequestData ToGSData()
+    public override GSRequestData ToGSData()
     {
         GSRequestData data = new GSRequestData();
         data.AddString("type", this.type);
         data.AddString("direction", this.direction);
         data.AddNumber("lastx", this.lastx);
         data.AddNumber("lasty", this.lasty);
+        Debug.Log(data.JSON);
+        return data;
+    }
+}
+
+public class LockState : SceneState
+{
+    string state;
+    public LockState(string type, string state)
+    {
+        this.type = type;
+        this.state = state;
+    }
+
+    public override void Print()
+    {
+        Debug.Log("Type:" + type + ", State:" + this.state);
+    }
+
+    public override GSRequestData ToGSData()
+    {
+        GSRequestData data = new GSRequestData();
+        data.AddString("type", this.type);
+        data.AddString("state", this.state);
         Debug.Log(data.JSON);
         return data;
     }
@@ -306,7 +376,7 @@ public class InboxMessage
     }
 }
 
-
+[Serializable()]
 public class QuestData
 {
     public QuestData()
@@ -334,6 +404,7 @@ public class QuestData
 
 
     public string questID;
+    [NonSerialized]
     public string name;
     public string description;
     public bool isActive;
@@ -378,6 +449,7 @@ public class QuestData
     }
 }
 
+[Serializable()]
 public class StageData
 {
     public StageData()
@@ -415,7 +487,7 @@ public class StageData
     public bool isInitial;
 }
 
-
+[Serializable()]
 public class QuestStep 
 {
 
@@ -452,3 +524,32 @@ public class QuestStep
     public bool isComplete = false;
 
 }
+
+//[Serializable()]
+//public class IslandProgress 
+//{
+//    public string island_id;
+//}
+//
+//
+//    island_id: UUID,
+//    active_quests: {
+//        quest_id_1: { // each active quest gets an entry based on id
+//            active_stage: stage_id,
+//            completed: bool,
+//            completed_stages:[stage_ids],
+//            step_progress: {
+//                step_id_1: { // each step gets an entry based on id
+//                    completed: bool,
+//                    progress: (arbitrary, e.g. int, null)
+//                }
+//            }
+//        }
+//    }
+//}
+//
+//IslandCompletionPercentage {
+//    island_id:    UUID,
+//    total_quests_available: int,
+//    total_quests_complete: int
+//}
