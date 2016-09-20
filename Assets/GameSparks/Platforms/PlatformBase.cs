@@ -76,9 +76,9 @@ namespace GameSparks.Platforms
 		{
 			if(paused)
 			{
-				#if UNITY_EDITOR
+				//#if UNITY_EDITOR
 				GS.Disconnect();
-				#endif
+				//#endif
 			}
 			else
 			{

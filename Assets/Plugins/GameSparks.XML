@@ -139,16 +139,6 @@
             The position.
             </value>
         </member>
-        <member name="M:SuperSocket.ClientEngine.SslStreamTcpSession.ValidateRemoteCertificate(System.Object,System.Security.Cryptography.X509Certificates.X509Certificate,System.Security.Cryptography.X509Certificates.X509Chain,System.Net.Security.SslPolicyErrors)">
-            <summary>
-            Validates the remote certificate.
-            </summary>
-            <param name="sender">The sender.</param>
-            <param name="certificate">The certificate.</param>
-            <param name="chain">The chain.</param>
-            <param name="sslPolicyErrors">The SSL policy errors.</param>
-            <returns></returns>
-        </member>
         <member name="P:SuperSocket.ClientEngine.Protocol.ArraySegmentEx`1.Array">
             <summary>
             Gets the array.

@@ -51,6 +51,8 @@ namespace GameSparks.Editor
         public static void Edit()
         {
             Selection.activeObject = GetOrCreateSettingsAsset();
+
+			UpdateSDK (true);
         }
 
 
@@ -59,6 +61,41 @@ namespace GameSparks.Editor
     		// make sure the runtime code will load the Asset from Resources when it next tries to access this. 
     		GameSparksSettings.SetInstance(null);
     	}
+
+		static GameSparksSettingsEditor() {
+
+			string[] oldSDKFiles = {
+				"Assets/GameSparks/Platforms/IOS",
+				"Assets/Plugins/iOS/GameSparksWebSocket.h",
+				"Assets/Plugins/iOS/GameSparksWebSocket.m",
+				"Assets/Plugins/iOS/SRWebSocket.h",
+				"Assets/Plugins/iOS/SRWebSocket.m",
+				"Assets/Plugins/iOS/SocketController.h",
+				"Assets/Plugins/iOS/SocketController.m",
+				"Assets/GameSparks/Editor/GameSparksPostprocessScript.cs",
+				"Assets/GameSparks/Editor/mod_pbxproj.py",
+				"Assets/GameSparks/Editor/mod_pbxproj.pyc",
+				"Assets/GameSparks/Editor/post_process.py"
+			};
+
+			foreach(string oldSDKFile in oldSDKFiles) {
+				bool hasDeleted = false;
+
+				if(File.Exists(oldSDKFile))
+				{
+					File.Delete(oldSDKFile);
+					hasDeleted = true;
+				} else if(Directory.Exists(oldSDKFile)) {
+					Directory.Delete(oldSDKFile, true);
+					hasDeleted = true;
+				}
+				if(hasDeleted) {
+					AssetDatabase.Refresh();
+				}
+
+			}
+
+		}
     	
     	public override void OnInspectorGUI()
     	{
@@ -116,37 +153,12 @@ namespace GameSparks.Editor
 
     			}
 
-    //			GUILayout.TextArea("Get the latest GameSparks SDK version.", EditorStyles.wordWrappedLabel);
-    //
-    //			if(GUILayout.Button("Update SDK")){
-    //				System.Xml.XmlReader sdkInfo = GameSparksRestApi.GetSDKInfo();
-    //				if(sdkInfo != null){
-    //					while(sdkInfo.Read()){
-    //
-    //						if((sdkInfo.NodeType == System.Xml.XmlNodeType.Element) && (sdkInfo.Name == "sdk"))
-    //						{
-    //							string serverVersion = sdkInfo.GetAttribute("version");
-    //							Debug.Log ("Server Version " + serverVersion);
-    //							if(GameSparksSettings.SdkVersion == null || !GameSparksSettings.SdkVersion.Equals(serverVersion)){
-    //								Debug.Log ("Updating GameSparks SDK");
-    //								System.Xml.XmlReader files = sdkInfo.ReadSubtree();
-    //								while(files.Read()){
-    //									if((files.NodeType == System.Xml.XmlNodeType.Element) && (files.Name == "file")){
-    //										GameSparksRestApi.UpdateSDKFile(files.GetAttribute("source"), files.GetAttribute("target"));
-    //									}
-    //								}
-    //								Debug.Log ("Updating GameSparks Version: from (" + GameSparksSettings.SdkVersion + ") to (" + serverVersion + ")");
-    //								GameSparksSettings.SdkVersion = serverVersion;
-    //								EditorUtility.SetDirty(instance);
-    //								AssetDatabase.Refresh();
-    //							} else {
-    //								break;
-    //							}
-    //						}
-    //					}
-    //				}
-    //
-    //			}
+    			GUILayout.TextArea("Get the latest GameSparks SDK version.", EditorStyles.wordWrappedLabel);
+    
+    			if(GUILayout.Button("Update SDK"))
+				{
+					UpdateSDK (false);
+    			}
     		}
 
     		GUILayout.TextArea("Run the GameSparks test harness in the editor. ", EditorStyles.wordWrappedLabel);
@@ -177,7 +189,32 @@ namespace GameSparks.Editor
             
         }
 
+		private static void UpdateSDK(Boolean silentMode)
+		{
+			string lastVersion = GameSparksRestApi.GetLastVersion ();
 
+			if (lastVersion != null) {
+				Debug.Log ("Latest version available: " + lastVersion);
+
+				if (GameSparksRestApi.CompareCurrentWithLastVersion (GameSparks.Core.GS.Version, lastVersion)) {
+					if (EditorUtility.DisplayDialog ("GameSparks SDK", "There is a new available SDK.\nWould you like to update it?", "Yes", "No")) {
+						Debug.Log ("Updating GameSparks SDK from " + GameSparks.Core.GS.Version + " to " + lastVersion + " version");
+
+						if (GameSparksRestApi.UpdateSDK (lastVersion)) {
+							Debug.Log ("Updated GameSparks SDK!");
+						}
+					}
+				} else {
+					if (!silentMode) {
+						EditorUtility.DisplayDialog ("GameSparks SDK", "Sorry, there is any new available SDK.", "OK");
+					}
+				}
+			} else {
+				if (!silentMode) {
+					EditorUtility.DisplayDialog ("GameSparks SDK", "Error occured during getting last version!", "OK");
+				}
+			}
+		}
         
     }
 }

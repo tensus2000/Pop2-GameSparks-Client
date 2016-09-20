@@ -6,6 +6,109 @@ using System.Collections.Generic;
 using System.Linq.Expressions;
 
 
+//public void LoadQuest(string character_id, string quest_id,  onLoadQuest onLoadQuest, onRequestFailed onRequestFailed)
+//{
+//    Debug.Log("GMS| Fetching Quest Info...");
+//    new GameSparks.Api.Requests.LogEventRequest().SetEventKey("loadQuest")
+//        .SetEventAttribute("character_id", character_id)
+//        .SetEventAttribute("quest_id", quest_id)
+//        .SetDurable(true)
+//        .Send((response) =>
+//            {
+//                if (!response.HasErrors)
+//                {
+//                    if(onLoadQuest != null && response.ScriptData.GetGSData("questProgress") != null)
+//                    {
+//                        GSData questData = response.ScriptData.GetGSData("questProgress");
+//                        QuestData newQuest = new QuestData();
+//
+//                        foreach(var questField in typeof(QuestData).GetFields())
+//                        {
+//                            if(questField.FieldType == typeof(string) && !questField.IsNotSerialized)
+//                            {
+//                                questField.SetValue(newQuest, questData.GetString(questField.Name));
+//                            }
+//                            else if(questField.FieldType == typeof(bool) && !questField.IsNotSerialized)
+//                            {
+//                                questField.SetValue(newQuest, questData.GetBoolean(questField.Name).GetValueOrDefault(false));
+//                            }
+//                            else if(questField.FieldType == typeof(int) && !questField.IsNotSerialized)
+//                            {
+//                                questField.SetValue(newQuest, questData.GetNumber(questField.Name).GetValueOrDefault(0));
+//                            }
+//                            else
+//                            {
+//                                if(questField.FieldType == typeof(List<string>) && !questField.IsNotSerialized)
+//                                {
+//                                    questField.SetValue(newQuest, questData.GetStringList(questField.Name));
+//                                }
+//                                else if(questField.FieldType == typeof(List<StageData>) && !questField.IsNotSerialized)
+//                                {
+//                                    List<GSData> respStageList = questData.GetGSDataList("stages");
+//                                    List<StageData> stageList = new List<StageData>();
+//                                    foreach(GSData gs_stage in respStageList)
+//                                    {
+//                                        StageData stage = new StageData();
+//                                        foreach(var stageField in typeof(StageData).GetFields())
+//                                        {
+//                                            if(stageField.FieldType == typeof(string) && !stageField.IsNotSerialized)
+//                                            {
+//                                                stageField.SetValue(stage, gs_stage.GetString(stageField.Name));
+//                                            }
+//                                            else if(stageField.FieldType == typeof(bool) && !stageField.IsNotSerialized)
+//                                            {
+//                                                stageField.SetValue(stage, gs_stage.GetBoolean(stageField.Name).GetValueOrDefault(false));
+//                                            }
+//                                            else if(stageField.FieldType == typeof(int) && !stageField.IsNotSerialized)
+//                                            {
+//                                                stageField.SetValue(stage, gs_stage.GetNumber(stageField.Name).GetValueOrDefault(0));
+//                                            }
+//                                            else
+//                                            {
+//                                                if(stageField.FieldType == typeof(List<string>) && !stageField.IsNotSerialized)
+//                                                {
+//                                                    stageField.SetValue(stage, gs_stage.GetStringList(stageField.Name));
+//                                                }
+//                                                else if(stageField.FieldType == typeof(List<QuestStep>)  && !stageField.IsNotSerialized)
+//                                                {
+//                                                    List<GSData> respStepList = gs_stage.GetGSDataList("steps");
+//                                                    List<QuestStep> stepList = new List<QuestStep>();
+//                                                    foreach(GSData gs_step in respStepList)
+//                                                    {
+//                                                        QuestStep step = new QuestStep();
+//                                                        foreach(var stepField in typeof(QuestStep).GetFields())
+//                                                        {
+//                                                            if(stepField.FieldType == typeof(string)  && !stepField.IsNotSerialized)
+//                                                            {
+//                                                                stepField.SetValue(step, gs_step.GetString(stepField.Name));
+//                                                            }
+//                                                        }
+//                                                        stepList.Add(step);
+//                                                    }
+//                                                    stage.SetSteps(stepList);
+//                                                }
+//                                            }
+//                                        }
+//                                        stageList.Add(stage);
+//                                    }
+//                                    newQuest.SetStages(stageList);
+//                                }
+//                            }
+//                        }
+//                        onLoadQuest(newQuest);
+//                    }
+//                }
+//                else
+//                {
+//                    if (onRequestFailed != null)
+//                    {
+//                        onRequestFailed(new GameSparksError(ProcessGSErrors(response.Errors)));
+//                    }
+//                }
+//            });
+//}
+
+
 public class Scene
 {
     int scene_id, island_id;
@@ -104,6 +207,16 @@ public class OutfitPrototype
 public class AdornmentPrototype
 {
     public string type, name, url;
+
+    public AdornmentPrototype(string type, string url)
+    {
+        this.name = name;
+        this.url = url;
+    }
+
+    public AdornmentPrototype()
+    {
+    }
 }
 
 
@@ -186,107 +299,110 @@ public class Item
     }
 }
 
-public class StateData
-{
-    public List<SceneState> states;
-
-    public StateData()
-    {
-        states = new List<SceneState>();
-    }
-
-    public void addState(SceneState state)
-    {
-        states.Add(state);
-    }
-
-    public GSRequestData ToGSData()
-    {
-        GSRequestData data = new GSRequestData();
-
-        List<GSData> dataList = new List<GSData>();
-
-        foreach (SceneState state in states)
-        {
-            dataList.Add(state.ToGSData());
-        }
-
-        data.AddObjectList("list", dataList);
-
-        return data;
-    }
-
-    public void Print()
-    {
-        foreach (SceneState state in states)
-        {
-            state.Print();
-        }
-    }
-}
 
 
-public abstract class SceneState
-{
-    public string type;
 
-    public abstract GSRequestData ToGSData();
-    public abstract void Print();
-}
+//public class StateData
+//{
+//    public List<SceneState> states;
+//
+//    public StateData()
+//    {
+//        states = new List<SceneState>();
+//    }
+//
+//    public void addState(SceneState state)
+//    {
+//        states.Add(state);
+//    }
+//
+//    public GSRequestData ToGSData()
+//    {
+//        GSRequestData data = new GSRequestData();
+//
+//        List<GSData> dataList = new List<GSData>();
+//
+//        foreach (SceneState state in states)
+//        {
+//            dataList.Add(state.ToGSData());
+//        }
+//
+//        data.AddObjectList("list", dataList);
+//
+//        return data;
+//    }
+//
+//    public void Print()
+//    {
+//        foreach (SceneState state in states)
+//        {
+//            state.Print();
+//        }
+//    }
+//}
 
-public class PositionState : SceneState
-{
-    string direction;
-    int lastx, lasty;
-
-    public PositionState(string type, string direction, int lastx, int lasty)
-    {
-        this.type = type;
-        this.direction = direction;
-        this.lastx = lastx;
-        this.lasty = lasty;
-    }
-
-    public override void Print()
-    {
-        Debug.Log("Type:" + type + ", Direction:" + direction + ", LastX:" + lastx + ", LastY:" + lasty);
-    }
-
-    public override GSRequestData ToGSData()
-    {
-        GSRequestData data = new GSRequestData();
-        data.AddString("type", this.type);
-        data.AddString("direction", this.direction);
-        data.AddNumber("lastx", this.lastx);
-        data.AddNumber("lasty", this.lasty);
-        Debug.Log(data.JSON);
-        return data;
-    }
-}
-
-public class LockState : SceneState
-{
-    string state;
-    public LockState(string type, string state)
-    {
-        this.type = type;
-        this.state = state;
-    }
-
-    public override void Print()
-    {
-        Debug.Log("Type:" + type + ", State:" + this.state);
-    }
-
-    public override GSRequestData ToGSData()
-    {
-        GSRequestData data = new GSRequestData();
-        data.AddString("type", this.type);
-        data.AddString("state", this.state);
-        Debug.Log(data.JSON);
-        return data;
-    }
-}
+//
+//public abstract class SceneState
+//{
+//    public string type;
+//
+//    public abstract GSRequestData ToGSData();
+//    public abstract void Print();
+//}
+//
+//public class PositionState : SceneState
+//{
+//    string direction;
+//    int lastx, lasty;
+//
+//    public PositionState(string type, string direction, int lastx, int lasty)
+//    {
+//        this.type = type;
+//        this.direction = direction;
+//        this.lastx = lastx;
+//        this.lasty = lasty;
+//    }
+//
+//    public override void Print()
+//    {
+//        Debug.Log("Type:" + type + ", Direction:" + direction + ", LastX:" + lastx + ", LastY:" + lasty);
+//    }
+//
+//    public override GSRequestData ToGSData()
+//    {
+//        GSRequestData data = new GSRequestData();
+//        data.AddString("type", this.type);
+//        data.AddString("direction", this.direction);
+//        data.AddNumber("lastx", this.lastx);
+//        data.AddNumber("lasty", this.lasty);
+//        Debug.Log(data.JSON);
+//        return data;
+//    }
+//}
+//
+//public class LockState : SceneState
+//{
+//    string state;
+//    public LockState(string type, string state)
+//    {
+//        this.type = type;
+//        this.state = state;
+//    }
+//
+//    public override void Print()
+//    {
+//        Debug.Log("Type:" + type + ", State:" + this.state);
+//    }
+//
+//    public override GSRequestData ToGSData()
+//    {
+//        GSRequestData data = new GSRequestData();
+//        data.AddString("type", this.type);
+//        data.AddString("state", this.state);
+//        Debug.Log(data.JSON);
+//        return data;
+//    }
+//}
 
 
 public class Island
@@ -525,31 +641,109 @@ public class QuestStep
 
 }
 
-//[Serializable()]
-//public class IslandProgress 
-//{
-//    public string island_id;
-//}
-//
-//
-//    island_id: UUID,
-//    active_quests: {
-//        quest_id_1: { // each active quest gets an entry based on id
-//            active_stage: stage_id,
-//            completed: bool,
-//            completed_stages:[stage_ids],
-//            step_progress: {
-//                step_id_1: { // each step gets an entry based on id
-//                    completed: bool,
-//                    progress: (arbitrary, e.g. int, null)
-//                }
-//            }
-//        }
-//    }
-//}
-//
-//IslandCompletionPercentage {
-//    island_id:    UUID,
-//    total_quests_available: int,
-//    total_quests_complete: int
-//}
+
+public class ThingA
+{
+    public List<string> myStringyList;
+
+    public override string ToString(){
+        if(myStringyList != null)
+        {
+            Debug.Log("myStringyList -> "+myStringyList.Count);
+        }
+        return null;
+    }
+}
+
+public class ThingB
+{
+    public bool isBool;
+    public string isString;
+    public int isInt;
+
+    public override string ToString(){
+        Debug.Log("isBool:"+isBool+", isString:"+isString+", isInt:"+isInt);
+        return null;
+    }
+}
+
+public class ThingC
+{
+    public string[] myStringyArray;
+
+    public override string ToString(){
+        if(myStringyArray != null)
+        {
+            Debug.Log("myStringyArray -> "+myStringyArray.Length);
+        }
+        return null;
+    }
+}
+    
+
+public class ThingE
+{
+    public int[]  lotsOfInts;
+
+    public override string ToString(){
+        if(lotsOfInts != null)
+        {
+            Debug.Log("lotsOfInts -> "+lotsOfInts.Length);
+        }
+        return null;
+    }
+}
+
+public class ThingF
+{
+    public float myFloat = 1.040404040f;
+    public float[]  lotsOfFloats;
+
+    public override string ToString(){
+        if(lotsOfFloats != null)
+        {
+            Debug.LogError("lotsOfFloats -> "+lotsOfFloats.Length);
+        }
+        Debug.LogError("OVERRIDE");
+        return null;
+    }
+}
+
+public class SceneState
+{
+    public int island_id;
+    public int scene_id;
+    public string character_id;
+    public Dictionary<string, object> states;
+
+    public void Print()
+    {
+        Debug.Log("Char_id:"+character_id+", Island_id:"+island_id+", Scene_id:"+scene_id);
+        if(states != null)
+        {
+            foreach(var elem in states)
+            {
+                Debug.LogWarning(elem.Value);
+            }
+        }
+    }
+
+    public SceneState(string character_id, int island_id, int scene_id)
+    {
+        this.character_id = character_id;
+        this.island_id =  island_id;
+        this.scene_id = scene_id;
+    }
+
+    public SceneState()
+    {
+    }
+
+    public SceneState(string character_id, int island_id, int scene_id, Dictionary<string, object> states)
+    {
+        this.character_id = character_id;
+        this.island_id = island_id;
+        this.scene_id = scene_id;
+        this.states = states;
+    }
+}

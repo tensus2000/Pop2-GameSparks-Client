@@ -33,3 +33,6 @@
 /Users/seandurkan/Desktop/GameSparks/Studios/FEN/Pop2_SampleClient/Pop2-GameSparks-Client/Temp/bin/Debug/Unity.CecilTools.dll
 /Users/seandurkan/Desktop/GameSparks/Studios/FEN/Pop2_SampleClient/Pop2-GameSparks-Client/Temp/bin/Debug/Mono.Cecil.Pdb.dll
 /Users/seandurkan/Desktop/GameSparks/Studios/FEN/Pop2_SampleClient/Pop2-GameSparks-Client/Temp/bin/Debug/Mono.Cecil.Mdb.dll
+/Users/seandurkan/Desktop/GameSparks/Studios/FEN/Pop2_SampleClient/Pop2-GameSparks-Client/Temp/bin/Debug/UnityEditor.iOS.Extensions.Common.dll.mdb
+/Users/seandurkan/Desktop/GameSparks/Studios/FEN/Pop2_SampleClient/Pop2-GameSparks-Client/Temp/bin/Debug/UnityEditor.iOS.Extensions.Xcode.dll.mdb
+/Users/seandurkan/Desktop/GameSparks/Studios/FEN/Pop2_SampleClient/Pop2-GameSparks-Client/Temp/bin/Debug/BouncyCastle_GameSparks.dll

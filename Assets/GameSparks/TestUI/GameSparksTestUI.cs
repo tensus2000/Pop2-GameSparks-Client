@@ -153,7 +153,13 @@ public class GameSparksTestUI : MonoBehaviour
         if (GUILayout.Button ("Logout", GUILayout.Width (itemWidth), GUILayout.Height (itemHeight))) {
 			GS.Reset();
 		}
+
+		if (GUILayout.Button ("Disconnect", GUILayout.Width (itemWidth), GUILayout.Height (itemHeight))) {
+			GS.Disconnect();
+		}
 #endif
+
+
 
         if (GS.Available){
 #if UNITY_PS4 && !UNITY_EDITOR
@@ -163,9 +169,7 @@ public class GameSparksTestUI : MonoBehaviour
                 GUI.Box(rectDisconnect, GUIContent.none, clickedButton ? rectClickedStyle : rectNormalStyle);
             }
 #else
-            if (GUILayout.Button ("Disconnect", GUILayout.Width (itemWidth), GUILayout.Height (itemHeight))) {
-				GS.Disconnect();
-			}
+            
 #endif
         } else {
 #if UNITY_PS4 && !UNITY_EDITOR
