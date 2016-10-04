@@ -21,10 +21,10 @@ public class UIManager : MonoBehaviour {
 	private Queue<string> myLogQueue = new Queue<string>();
 	private string myLog;
 
-	public GameObject items, scenes, scene_states, menu, playerDetails, inbox, islands, characters, outfits, non_auth, quests;
+	public GameObject daily_spin, currency, asset_bundle, items, scenes, scene_states, menu, playerDetails, inbox, islands, characters, outfits, non_auth, quests, test_user;
 
     public Button logoutBttn;
-    public Button goto_quests_bttn, goto_nonAuth_bttn, goto_scenes_bttn, goto_sceneState_bttn, goto_characters_bttn, goto_outfits_bttn, goto_islands_bttn, goto_chars_bttn, goto_items_bttn, goto_player_bttn, goTo_player_inbox, goTo_menu_bttn1, goTo_menu_bttn2, goTo_menu_bttn3, goTo_menu_bttn4, goTo_menu_bttn5, goTo_menu_bttn6, goTo_menu_bttn7, goTo_menu_bttn8, goTo_menu_bttn9, goTo_menu_bttn10;
+    public Button goto_dailyspin_bttn, goto_currency_bttn, goto_asset_bundle_bttn, goto_testuser_bttn, goto_quests_bttn, goto_nonAuth_bttn, goto_scenes_bttn, goto_sceneState_bttn, goto_characters_bttn, goto_outfits_bttn, goto_islands_bttn, goto_chars_bttn, goto_items_bttn, goto_player_bttn, goTo_player_inbox, goTo_menu_bttn1, goTo_menu_bttn2, goTo_menu_bttn3, goTo_menu_bttn4, goTo_menu_bttn5, goTo_menu_bttn6, goTo_menu_bttn7, goTo_menu_bttn8, goTo_menu_bttn9, goTo_menu_bttn10, goTo_menu_bttn11, goTo_menu_bttn12,  goTo_menu_bttn13, goTo_menu_bttn14;
 
 	public Button clearLog_bttn;
 	public InputField auth_password_input, auth_username_txt;
@@ -86,10 +86,21 @@ public class UIManager : MonoBehaviour {
     public Button get_scenes_bttn;
     public InputField get_scenes_island_id;
 
-
-
     public Button set_quests_bttn, get_quests_bttn;
 
+    public Button test_user_bttn;
+    public InputField  test_username, test_displayName, test_age, test_gender, test_password;
+
+    public Button submit_asset_bundle_bttn, get_asset_bundle_bttn;
+    public InputField asset_bundle_id, created_by, admin_username, admin_password, file_path_1, get_asset_bundle_id;
+    public GameObject uploadingPanel;
+
+    public InputField currency_character_id, no_moonstones_convert_field, currency_event_name_field, purchase_item_id;
+    public Button convert_to_coins_bttn, add_currency_event_complete_bttn, purchase_item_bttn;
+    public Text to_coins;
+
+    public Button get_daily_spin_bttn, choose_daily_bonus_bttn;
+    public InputField daily_spin_character_id, choose_daily_bonus_id;
 
 	// Use this for initialization
 	void Start () {
@@ -115,6 +126,10 @@ public class UIManager : MonoBehaviour {
 		GameSparksManager.Instance ().OnSessionTerminated += () => {
 			Debug.LogWarning ("Session Terminated...");
 		};
+        // --> EXAMPLE, THIS WILL BE TRIGGERED IF THE SEVER WAS UPATED WHILE THE PLAYER IS CONNECTED //
+        GameSparksManager.Instance ().OnServerVersionMessage += (serverVersion) => {
+            serverVersion.Print();
+        };
 
 		#region SET UI MANAGER
 		blockout_panel.SetActive (true);
@@ -183,8 +198,24 @@ public class UIManager : MonoBehaviour {
             Debug.Log ("Selected Quests Options...");
             BringPanelForward (quests);
         });
+        goto_testuser_bttn.onClick.AddListener (() => {
+            Debug.Log ("Selected Test User Options...");
+            BringPanelForward (test_user);
+        });
+        goto_asset_bundle_bttn.onClick.AddListener (() => {
+            Debug.Log ("Selected Asset Bundle Options...");
+            BringPanelForward (asset_bundle);
+        });
+        goto_currency_bttn.onClick.AddListener (() => {
+            Debug.Log ("Selected Currency Options...");
+            BringPanelForward (currency);
+        });
+        goto_dailyspin_bttn.onClick.AddListener (() => {
+            Debug.Log ("Selected Daily Spin Options...");
+            BringPanelForward (daily_spin);
+        });
 
-        goTo_menu_bttn10.onClick = goTo_menu_bttn2.onClick = goTo_menu_bttn3.onClick = goTo_menu_bttn9.onClick = goTo_menu_bttn4.onClick = goTo_menu_bttn5.onClick = goTo_menu_bttn8.onClick = goTo_menu_bttn6.onClick = goTo_menu_bttn7.onClick = goTo_menu_bttn1.onClick;
+        goTo_menu_bttn13.onClick = goTo_menu_bttn10.onClick = goTo_menu_bttn12.onClick = goTo_menu_bttn11.onClick = goTo_menu_bttn2.onClick = goTo_menu_bttn3.onClick = goTo_menu_bttn9.onClick = goTo_menu_bttn4.onClick = goTo_menu_bttn5.onClick = goTo_menu_bttn8.onClick = goTo_menu_bttn6.onClick = goTo_menu_bttn7.onClick = goTo_menu_bttn1.onClick;
 		#endregion
 
 		#region AUTHENTICATION & REGISTRATION EXAMPLES
@@ -208,11 +239,14 @@ public class UIManager : MonoBehaviour {
 			
 
 				server_version_txt.text = "Server Version: Requesting....";
-				GameSparksManager.Instance ().GetServerVersion ((_version, _date) => {
-                    Debug.Log("UIM| Version Date:"+_date.ToString());
-					server_version_txt.text = "Server Version: " + _version;
+				GameSparksManager.Instance ().GetServerVersion ((_versionServer) => {
+                    _versionServer.Print();
+                    Debug.Log("UIM| Version Date:"+_versionServer.published.ToString());
+                    server_version_txt.text = "Server Version: " + _versionServer.currentVersion;
 					blockout_panel.SetActive (false);
-				}, (_error) => {
+				}, (_error, _serverVersion) => {
+                    blockout_panel.SetActive (false);
+                    _serverVersion.Print();
                     Debug.LogError("UIM| Error:"+_error.errorMessage.ToString());
 				});
             }, (_authFailed) => {
@@ -233,12 +267,15 @@ public class UIManager : MonoBehaviour {
 				// here is an example of how we can use the event callbacks. //
 				// in this case, i will remove the menu-option blocker if the player has authenticated successfully //
 				server_version_txt.text = "Server Version: Requesting....";
-				GameSparksManager.Instance ().GetServerVersion ((_version, _date) => {
-                    Debug.Log("UIM| Version Date:"+_date.ToString());
-					server_version_txt.text = "Server Version: " + _version;
+				GameSparksManager.Instance ().GetServerVersion ((_serverVersion) => {
+                    _serverVersion.Print();
+                    Debug.Log("UIM| Version Date:"+_serverVersion.published.ToString());
+                    server_version_txt.text = "Server Version: " + _serverVersion.currentVersion;
 					blockout_panel.SetActive (false);
-				}, (_error)=>{
-					Debug.LogError("UIM| "+_error.ToString());
+				}, (_error, _serverVersion)=>{
+                    _serverVersion.Print();
+                    Debug.LogError("UIM| "+_error.ToString());
+                    blockout_panel.SetActive (false);
 				});
 				}, (_error) => {
                 Debug.LogError ("UIM| Error: " + _error.errorMessage.ToString());
@@ -248,18 +285,22 @@ public class UIManager : MonoBehaviour {
 
         check_username_bttn.onClick.AddListener (() => {
             Debug.Log ("UIM| Clicked on registration button");
-            GameSparksManager.Instance ().CheckUsername(check_username.text, int.Parse(check_username_suggestions.text),  (_suggestions, _validName) => {
-                if(_validName != string.Empty && _validName != null)
-                {
-                    Debug.Log("UIM| Username Available: "+_validName);
-                }
-                if(_suggestions.Length > 0)
-                {
-                    for(int i = 0; i < _suggestions.Length; i++)
-                    {
-                        Debug.Log("UIM| Suggestion ["+(i+1)+"] -> "+_suggestions[i]);
-                    }
-                }
+            GameSparksManager.Instance ().CheckUsername(check_username.text, int.Parse(check_username_suggestions.text),  
+                (_checkUsernameResp) => {
+                _checkUsernameResp.Print();
+//                if(_checkUsernameResp.availableName != string.Empty && _checkUsernameResp.availableName != null)
+//                {
+//                    Debug.Log("UIM| Username Available: "+_checkUsernameResp.availableName);
+//                }
+//                if(_checkUsernameResp.suggestedNames.Length > 0)
+//                {
+//                    for(int i = 0; i < _checkUsernameResp.suggestedNames.Length; i++)
+//                    {
+//                        Debug.Log("UIM| Suggestion ["+(i+1)+"] -> "+_checkUsernameResp.suggestedNames[i]);
+//                    }
+//                }
+//                Debug.Log("Is Pop 1 Player: "+_checkUsernameResp.ispop);
+//                Debug.Log("Is Pop 2 Player: "+_isPop2Player);
             }, (_error) => {
                 Debug.LogError("UIM| "+_error.errorMessage.ToString());
             }
@@ -267,7 +308,6 @@ public class UIManager : MonoBehaviour {
         });
 
 		#endregion
-
 
 		#region INVENTORY EXAMPLES
 		get_inv_bttn.onClick.AddListener (() => {
@@ -333,7 +373,7 @@ public class UIManager : MonoBehaviour {
 			GameSparksManager.Instance ().GetSceneState (character_id, getscene_island_id.text, getscene_scene_id.text, (_states) => {
 				// callback will have the scene-state which was returned //
 				// you can use it from here //
-//				_states.Print ();
+				_states.Print ();
 			}, (_error) => {
                 Debug.LogError("UIM| "+_error.errorMessage.ToString());
 
@@ -358,14 +398,14 @@ public class UIManager : MonoBehaviour {
 
 
             Dictionary<string, object> newDic = new Dictionary<string, object>();
-        
+//        
             newDic.Add("myString", "Yo!");
             newDic.Add("myint" , 10);
-            newDic.Add("thingA", new ThingA(){ myStringyList = new List<string>(){ "1",  "2", "3" } });
-            newDic.Add("thingB", new ThingB(){ isInt = 100, isBool = true, isString = "Hello World!" });
-            newDic.Add("thingC", new ThingC(){ myStringyArray = new string[]{ "1",  "2", "3", "4" } });
-            newDic.Add("thingE", new ThingE(){ lotsOfInts = new int[]{ 1,2 ,3 ,4 ,5 ,6 ,7 , 8, 9 } });
-            newDic.Add("thingF", new ThingF(){ myFloat = 0.123f, lotsOfFloats = new float[]{ 1f, 4.5f, 1.234f} });
+            newDic.Add("test_elem", new TestElement());
+            newDic.Add("thingB", new ClassB());
+            newDic.Add("thingC", new ClassC());
+            newDic.Add("thingE", new ClassD());
+            newDic.Add("thingF", new ClassE());
 
             SceneState newSceneState = new SceneState(character_id, 1, 1, newDic);
             GameSparksManager.Instance ().SetSceneState (character_id, set_island_id.text, set_scene_id.text, newSceneState, null, null);
@@ -468,9 +508,9 @@ public class UIManager : MonoBehaviour {
 			// below is an example of how to send private messages with payload data //
 			// the payload data can be anything the client wants to interperate as an action or trigger (or anything really) //
 			// for example if we want a quest to start for the recipient when they recieve the data... //
-			// we are going to send the JSON { "quest-trigger" : "message-recieved" }
+			// we are going to send the JSON { "quest-trigger" : "message-GameSparksErrorMessage" }
 			GSRequestData payloadData = new GSRequestData ();
-			payloadData.AddString ("quest-trigger", "message-recieved");
+			payloadData.AddString ("quest-trigger", "message-GameSparksErrorMessage");
 			// we can then send it with the overloaded method.... //
 			GameSparksManager.Instance ().SendPrivateMessage (message_header.text, message_body.text, payloadData, message_recipient.text, character_id, null, null);
 
@@ -500,7 +540,11 @@ public class UIManager : MonoBehaviour {
 
 		read_message_bttn.onClick.AddListener (() => {
 			Debug.Log ("UIM| Clicked On Read Message Button...");
-			GameSparksManager.Instance ().ReadMessage (message_id.text);
+            GameSparksManager.Instance ().ReadMessage (message_id.text, () => {
+                // message was deleted
+            }, (_error) => {
+                Debug.LogError("UIM| "+_error.errorMessage.ToString());
+            });
 		});
 		#endregion 
 
@@ -791,7 +835,6 @@ public class UIManager : MonoBehaviour {
 
 		#endregion
 
-
         #region Quests
         StageData stage1 = new StageData("201", "202", "stage 201", true, true, false);
         stage1.SetRewards(new List<string>(){ "test1", "test2", "test3" });
@@ -833,6 +876,120 @@ public class UIManager : MonoBehaviour {
         });
         #endregion
 
+        #region Test User
+        test_user_bttn.onClick.AddListener (() => {
+            Debug.Log("UIM| Clicked On Create Test User Button...");
+            GameSparksManager.Instance().RegisterTestAccount(test_username.text, 
+                test_displayName.text, test_password.text, int.Parse(test_age.text), test_gender.text, () =>{
+//                _quest.Print();
+            }, (_error, _checkUsername) =>{
+                Debug.LogError("UIM| "+_error.errorMessage.ToString());
+                _checkUsername.Print();
+            });
+        });
+        #endregion
+
+        #region Asset Bundle
+
+        submit_asset_bundle_bttn.onClick.AddListener (() => {
+            Debug.Log("Clicked On Sumitt Asset Bundle Button...");
+
+            List<string> filePaths = new List<string>();
+            filePaths.Add(file_path_1.text);
+            uploadingPanel.SetActive(true);
+            GameSparksDownloadablesManager.SubmitAssetBundle(asset_bundle_id.text, created_by.text, admin_username.text, admin_password.text, file_path_1.text, 
+                (_assetBundle)=>{
+                _assetBundle.Print();
+                uploadingPanel.SetActive(false);
+            }, (_error)=>{
+                uploadingPanel.SetActive(false);
+                Debug.LogError(_error.errorMessage.ToString());
+            });
+        });
+
+        get_asset_bundle_bttn.onClick.AddListener (() => {
+            Debug.Log("Clicked On Sumitt Asset Bundle Button...");
+
+            GameSparksManager.Instance().GetAssetBundle(get_asset_bundle_id.text, (_assetbundle) =>{
+                _assetbundle.Print();
+            }, (_error)=>{
+                Debug.LogError(_error.errorMessage.ToString());
+            });
+
+//            List<string> assetBundleList = new List<string>();
+//            assetBundleList.Add("test_a");
+//            GameSparksManager.Instance().GetAssetBundles(assetBundleList, (_assetbundles) =>{
+//                for(int i = 0; i < _assetbundles.Length; i++)
+//                {
+//                    _assetbundles[i].Print();
+//                }
+//
+//            }, (_error)=>{
+//                Debug.LogError(_error.errorMessage.ToString());
+//            });
+
+        });
+
+        #endregion 
+
+        #region Currency
+
+        convert_to_coins_bttn.onClick.AddListener(() => {
+            Debug.Log("Clicked On Convert To Coins Button...");
+            GameSparksManager.Instance().ConvertToCoins(int.Parse(no_moonstones_convert_field.text), (_noCoins, _balance)=>{
+                to_coins.text = _noCoins.ToString();
+                Debug.Log(no_moonstones_convert_field.text+"<- MoonStones Converted To Coins ->"+_noCoins);
+                _balance.Print();
+            }, (_error) =>{
+                Debug.LogError(_error.errorMessage.ToString());
+            });
+        });
+
+        add_currency_event_complete_bttn.onClick.AddListener(() => {
+            Debug.Log("Clicked On Add Currency Complete Button...");
+            GameSparksManager.Instance().AddCoinsForCompletedEvent(currency_event_name_field.text, (_balance)=>{
+                _balance.Print();
+            }, (_error) =>{
+                Debug.LogError(_error.errorMessage.ToString());
+            });
+        });
+
+        purchase_item_bttn.onClick.AddListener(() => {
+            Debug.Log("Clicked On Purchase Item ID Button...");
+            GameSparksManager.Instance().AddCoinsForCompletedEvent(purchase_item_id.text, (_balance)=>{
+                _balance.Print();
+            }, (_error) =>{
+                Debug.LogError(_error.errorMessage.ToString());
+            });
+        });
+
+
+        #endregion
+
+
+        #region Daily Spin
+
+        get_daily_spin_bttn.onClick.AddListener(() => {
+            Debug.Log("Clicked Get Daily Spin Button...");
+            GameSparksManager.Instance().GetDailyBonusList(daily_spin_character_id.text, (_dailySpinList)=>{
+                _dailySpinList.Print();
+            }, (_error) =>{
+                Debug.LogError(_error.errorMessage.ToString());
+            });
+        });
+
+        choose_daily_bonus_bttn.onClick.AddListener(() => {
+            Debug.Log("Clicked Choose Daily Bonus Button...");
+            GameSparksManager.Instance().ChooseDailyBonus(daily_spin_character_id.text, choose_daily_bonus_id.text, (_bonus, _currency)=>{
+                _bonus.Print();
+                _currency.Print();
+            }, (_error) =>{
+                Debug.LogError(_error.errorMessage.ToString());
+            });
+        });
+
+
+        #endregion 
 	}
 
 
@@ -888,6 +1045,10 @@ public class UIManager : MonoBehaviour {
 		outfits.SetActive (false);
         non_auth.SetActive(false);
         quests.SetActive(false);
+        test_user.SetActive(false);
+        asset_bundle.SetActive(false);
+        currency.SetActive(false);
+        daily_spin.SetActive(false);
 		_panel.SetActive (true);
          
 

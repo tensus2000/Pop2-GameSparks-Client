@@ -10,6 +10,8 @@ using System;
 using System.Reflection;
 using System.Linq.Expressions;
 using System.Linq;
+using System.Net;
+using System.Net.Sockets;
 
 
 /// <summary>
@@ -44,7 +46,27 @@ public class GameSparksManager : MonoBehaviour
 
     #endregion
 
-    public static int GSVersion = 1;
+
+    /// <summary>
+    /// The user's public IP
+    /// </summary>
+    private static string userPublicIP;
+
+    /// <summary>
+    /// Gets the user's public ip.
+    /// </summary>
+    /// <returns>The user public ip.</returns>
+    public static string GetUserPublicIp()
+    {
+        return userPublicIP;
+    }
+
+    /// <summary>
+    /// The current server version according to the client
+    /// </summary>
+    public static int GSVersion = -1;
+
+
     /// <summary>
     /// Sets the client version
     /// </summary>
@@ -73,44 +95,69 @@ public class GameSparksManager : MonoBehaviour
             Debug.Log("GSM | Removed Duplicate...");
             Destroy(this.gameObject);
         }
+
+
     }
 
+    public IEnumerator GetLocalIPAddress()
+    {
+        WWW req = new WWW("http://checkip.dyndns.org");
+        yield return req;
+        string[] a = req.text.Split(':');
+        string a2;
+        if(a.Length > 1)
+        {
+            a2 = a[1].Substring(1);
+            string[] a3 = a2.Split('<');
+            userPublicIP = a3[0];
+            Debug.Log("Public Ip:"+userPublicIP);
+        }
+    }
 
 
     // Use this for initialization
     void Start()
     {
+       
         // This is a callback which is triggered when gamesparks connects and disconnects //
         // Note: on disconnect, this needs a request to timeout before it will know that the socket has closed //
         // i.e. we cannot tell the SDK the socket is closed if it is closed (since there is no connection) //
         GS.GameSparksAvailable += ((bool _isAvail) =>
         {
+            // get the user's public IP for use later //
+            StartCoroutine(GetLocalIPAddress());
             if (OnGSAvailable != null)
             {
                 OnGSAvailable(_isAvail);
             }
         });
         // These callbacks will send the message-received events back to the class they are being called from
-        GameSparks.Api.Messages.ScriptMessage_privateUserMessage.Listener += (message) =>
+        GameSparks.Api.Messages.PrivateUserMessage.Listener += (message) =>
         {
             if (OnNewPrivateMessage != null)
             {
-                OnNewPrivateMessage(new InboxMessage(message.MessageId, message.Data.GetString("sender-name"), message.Data.GetString("from"), message.Data.GetString("header"), message.Data.GetString("body"), message.Data.GetGSData("payload")));
+                    OnNewPrivateMessage(new InboxMessage(message.Data, message.MessageId));
             }
         };
-        GameSparks.Api.Messages.ScriptMessage_globalUserMessage.Listener += (message) =>
+        GameSparks.Api.Messages.GlobalUserMessage.Listener += (message) =>
         {
             if (OnNewGlobalMessage != null)
             {
-                OnNewGlobalMessage(new InboxMessage(message.MessageId, "Poptropica", "Poptropica", message.Data.GetString("header"), message.Data.GetString("body"), message.Data.GetGSData("payload")));
+                    OnNewGlobalMessage(new InboxMessage(message.Data, message.MessageId));
             }
         };
         GameSparks.Api.Messages.SessionTerminatedMessage.Listener += (message) =>
         {
             if (OnSessionTerminated != null)
             {
-                        
                 OnSessionTerminated();
+            }
+        };
+        GameSparks.Api.Messages.ServerVersionUpdateMessage.Listener += (message) =>
+        {
+            if(OnServerVersionMessage != null)
+            {
+                OnServerVersionMessage(new ServerVersionResponse(message.Data.GetGSData("data")));
             }
         };
     }
@@ -149,6 +196,17 @@ public class GameSparksManager : MonoBehaviour
     /// </summary>
     public event MessageEvent OnSessionTerminated;
 
+    /// <summary>
+    /// Occurs when on server version message hits the SDK.
+    /// </summary>
+    public event ServerVersionMessageEvent OnServerVersionMessage;
+
+    /// <summary>
+    /// This event is raised when gamesparks manager receives a script message marked as a server version message.
+    /// It requires construction of the ServerVersionResponse .
+    /// </summary>
+    public delegate void ServerVersionMessageEvent(ServerVersionResponse serverMessage);
+
     #endregion
 
     /// <summary>
@@ -169,7 +227,7 @@ public class GameSparksManager : MonoBehaviour
     public delegate void onAuthSuccess(AuthResponse authResponse);
 
     /// <summary>
-    /// Recieves GameSparksError, contains error message enum & status on the if the user was trying a pop1 account
+    /// GameSparksErrorMessage GameSparksError, contains error message enum & status on the if the user was trying a pop1 account
     /// </summary>
     public delegate void onAuthFailed(AuthFailed error);
 
@@ -318,7 +376,7 @@ public class GameSparksManager : MonoBehaviour
     /// <summary>
     /// receives an array of suggested usernames.
     /// </summary>
-    public delegate void onCheckUsername(string[] suggestedNames, string availableName);
+    public delegate void onCheckUsername(CheckUsernameResponse checkUsernameResponse);
 
     /// <summary>
     /// Checks the name request.
@@ -347,7 +405,7 @@ public class GameSparksManager : MonoBehaviour
             }
             else if(onCheckUsername != null && respData.GetGSData("@checkUsername") != null)
             {
-                onCheckUsername(respData.GetGSData("@checkUsername").GetStringList("suggested_names").ToArray(), respData.GetGSData("@checkUsername").GetString("available_name"));
+                onCheckUsername(new CheckUsernameResponse(respData.GetGSData("@checkUsername").GetStringList("suggested_names").ToArray(), respData.GetGSData("@checkUsername").GetString("available_name"), respData.GetGSData("@checkUsername").GetBoolean("isPop1Player").Value, respData.GetGSData("@checkUsername").GetBoolean("isPop2Player").Value));
             }
         }
     }
@@ -358,7 +416,7 @@ public class GameSparksManager : MonoBehaviour
     /// </summary>
     /// <param name="userName">User name.</param>
     /// <param name="n_suggestions">no of suggestions to return</param>
-    /// <param name="onCheckUsername">On check username. recieves an array of suggestions and a valid name if available</param>
+    /// <param name="onCheckUsername">On check username. GameSparksErrorMessage an array of suggestions and a valid name if available</param>
     /// <param name="onRequestFailed">On request failed. Receives GameSparksError object: enum, String</param>
     public void CheckUsername(string userName, int n_suggestions, onCheckUsername onCheckUsername, onRequestFailed onRequestFailed)
     {
@@ -390,6 +448,51 @@ public class GameSparksManager : MonoBehaviour
                         if (onRequestFailed != null)
                         {
                             onRequestFailed(new GameSparksError(ProcessGSErrors(response.BaseData)));
+                        }
+                    }
+                });
+    }
+
+    /// <summary>
+    /// This is called when registering a test account failed due to the password being incorrect.
+    /// in this case it returns suggested usernames and details about the player being pop1 or pop2
+    /// </summary>
+    public delegate void onRegisterTestAccountFailed(GameSparksError error, CheckUsernameResponse checkUsernameResp);
+
+    /// <summary>
+    /// Registers a test-account or clears a player account to create a new account.
+    /// </summary>
+    /// <param name="userName">User name.</param>
+    /// <param name="displayName">Display name.</param>
+    /// <param name="password">Password.</param>
+    /// <param name="age">Age.</param>
+    /// <param name="gender">Gender.</param>
+    /// <param name="onRequestSuccess">On request success.</param>
+    /// <param name="onRegisterTestAccountFailed">On request failed. Receives GameSparksError object: enum, String</param>
+    public void RegisterTestAccount(string userName, string displayName, string password, int age, string gender, onRequestSuccess onRequestSuccess, onRegisterTestAccountFailed onRegisterTestAccountFailed)
+    {
+        Debug.Log("GSM| Converting To Test Account...");
+        new GameSparks.Api.Requests.LogEventRequest().SetEventKey("registerTestAccount")
+            .SetEventAttribute("userName", userName)
+            .SetEventAttribute("displayName", displayName)
+            .SetEventAttribute("password", password)
+            .SetEventAttribute("age", age)
+            .SetEventAttribute("gender", gender)
+            .SetDurable(false)
+            .Send((response) =>
+                {
+                    if (!response.HasErrors && response.ScriptData == null)
+                    {
+                        if (onRequestSuccess != null)
+                        {
+                            onRequestSuccess();
+                        }
+                    }
+                    else
+                    {
+                        if (onRegisterTestAccountFailed != null && response.ScriptData != null)
+                        {
+                            onRegisterTestAccountFailed(new GameSparksError(ProcessGSErrors(response.Errors)), new CheckUsernameResponse(response.ScriptData.GetGSData("@checkUsername").GetStringList("suggested_names").ToArray(),response.ScriptData.GetGSData("@checkUsername").GetString("available_name"), response.ScriptData.GetGSData("@checkUsername").GetBoolean("isPop1Player").Value, response.ScriptData.GetGSData("@checkUsername").GetBoolean("isPop2Player").Value ));
                         }
                     }
                 });
@@ -608,7 +711,7 @@ public class GameSparksManager : MonoBehaviour
     #region SCENES API CALLS
 
     /// <summary>
-    /// Recieves an array of Scene objects
+    /// GameSparksErrorMessage an array of Scene objects
     /// </summary>
     public delegate void onGetScenes(Scene[] scenes);
 
@@ -632,7 +735,7 @@ public class GameSparksManager : MonoBehaviour
                         if (onGetScenes != null && response.ScriptData.GetGSDataList("scenes") != null)
                         {
                             List<Scene> scenes = new List<Scene>();
-                            // go through all the items in teh response and cache them to be returned by the callback //
+                            // go through all the items in GameSparksErrorMessage response and cache them to be returned by the callback //
                             foreach (GSData scene in response.ScriptData.GetGSDataList("scenes"))
                             {
                                 List<Scene.Connection> cons = new List<Scene.Connection>();
@@ -686,9 +789,11 @@ public class GameSparksManager : MonoBehaviour
                 if (!response.HasErrors)
                 {
                     Debug.LogWarning("GSM| Scenes Retrieved...");
+                        Debug.LogWarning(response.ScriptData.JSON);
                     if (onSceneStateFound != null && response.ScriptData.GetGSData("state") != null)
                     {
-                        onSceneStateFound(GSResponseToSceneState(response.ScriptData.GetGSData("state").GetGSData("scene_state")));
+                        onSceneStateFound((SceneState)GameSparksSerialiser.GSDataToObject(response.ScriptData.GetGSData("state")));
+//                      onSceneStateFound(GSResponseToSceneState(response.ScriptData.GetGSData("state").GetGSData("scene_state")));
                     }
                 }
                 else
@@ -701,89 +806,89 @@ public class GameSparksManager : MonoBehaviour
             });
     }
 
-    public object GSDataToObject(GSData data, Type objType)
-    {
-        object obj = Activator.CreateInstance(objType);
-        foreach(var typeField in objType.GetFields())
-        {
-            Debug.Log(typeField.FieldType.ToString());
-            if(!typeField.IsNotSerialized && typeField.FieldType == typeof(string))
-            {
-                typeField.SetValue(obj, data.GetString(typeField.Name));
-            }
-            else if(!typeField.IsNotSerialized && typeField.FieldType == typeof(int))
-            {
-                typeField.SetValue(obj, (int)data.GetNumber(typeField.Name).Value);    
-            }
-            else if(!typeField.IsNotSerialized && typeField.FieldType == typeof(bool))
-            {
-                typeField.SetValue(obj, data.GetBoolean(typeField.Name));    
-            }
-            else if(!typeField.IsNotSerialized && ( typeField.FieldType == typeof(List<string>) || typeField.FieldType == typeof(string[]) ))
-            {
-                typeField.SetValue(obj, (typeField.FieldType == typeof(List<string>)) ? (object)data.GetStringList(typeField.Name) : data.GetStringList(typeField.Name).ToArray());  
-            }
-            else if(!typeField.IsNotSerialized && (typeField.FieldType == typeof(List<int>) || typeField.FieldType == typeof(int[])) )
-            {
-                typeField.SetValue(obj, (typeField.FieldType == typeof(List<int>)) ? (object)data.GetIntList(typeField.Name) : data.GetIntList(typeField.Name).ToArray());    
-            }
-            else if(!typeField.IsNotSerialized && (typeField.FieldType == typeof(List<float>) || typeField.FieldType == typeof(float[])) )
-            {
-                typeField.SetValue(obj, (typeField.FieldType == typeof(List<float>)) ? (object)data.GetFloatList(typeField.Name) : data.GetFloatList(typeField.Name).ToArray());    
-            }
-            else if(!typeField.IsNotSerialized && (typeField.FieldType == typeof(List<double>) || typeField.FieldType == typeof(double[])) )
-            {
-                typeField.SetValue(obj, (typeField.FieldType == typeof(List<double>)) ? (object)data.GetDoubleList(typeField.Name) : data.GetDoubleList(typeField.Name).ToArray());    
-            }
-        }
-        return obj;
-    }
+//    public object GSDataToObject(GSData data, Type objType)
+//    {
+//        object obj = Activator.CreateInstance(objType);
+//        foreach(var typeField in objType.GetFields())
+//        {
+//            Debug.Log(typeField.FieldType.ToString());
+//            if(!typeField.IsNotSerialized && typeField.FieldType == typeof(string))
+//            {
+//                typeField.SetValue(obj, data.GetString(typeField.Name));
+//            }
+//            else if(!typeField.IsNotSerialized && typeField.FieldType == typeof(int))
+//            {
+//                typeField.SetValue(obj, (int)data.GetNumber(typeField.Name).Value);    
+//            }
+//            else if(!typeField.IsNotSerialized && typeField.FieldType == typeof(bool))
+//            {
+//                typeField.SetValue(obj, data.GetBoolean(typeField.Name));    
+//            }
+//            else if(!typeField.IsNotSerialized && ( typeField.FieldType == typeof(List<string>) || typeField.FieldType == typeof(string[]) ))
+//            {
+//                typeField.SetValue(obj, (typeField.FieldType == typeof(List<string>)) ? (object)data.GetStringList(typeField.Name) : data.GetStringList(typeField.Name).ToArray());  
+//            }
+//            else if(!typeField.IsNotSerialized && (typeField.FieldType == typeof(List<int>) || typeField.FieldType == typeof(int[])) )
+//            {
+//                typeField.SetValue(obj, (typeField.FieldType == typeof(List<int>)) ? (object)data.GetIntList(typeField.Name) : data.GetIntList(typeField.Name).ToArray());    
+//            }
+//            else if(!typeField.IsNotSerialized && (typeField.FieldType == typeof(List<float>) || typeField.FieldType == typeof(float[])) )
+//            {
+//                typeField.SetValue(obj, (typeField.FieldType == typeof(List<float>)) ? (object)data.GetFloatList(typeField.Name) : data.GetFloatList(typeField.Name).ToArray());    
+//            }
+//            else if(!typeField.IsNotSerialized && (typeField.FieldType == typeof(List<double>) || typeField.FieldType == typeof(double[])) )
+//            {
+//                typeField.SetValue(obj, (typeField.FieldType == typeof(List<double>)) ? (object)data.GetDoubleList(typeField.Name) : data.GetDoubleList(typeField.Name).ToArray());    
+//            }
+//        }
+//        return obj;
+//    }
 
-    public SceneState GSResponseToSceneState(GSData sceneData)
-    {
-        Debug.LogWarning(sceneData.JSON);
-        SceneState newScene = new SceneState();
-        foreach(var sceneField in typeof(SceneState).GetFields())
-        {
-            if(!sceneField.IsNotSerialized && sceneField.FieldType == typeof(string))
-            {
-                sceneField.SetValue(newScene, sceneData.GetString(sceneField.Name));
-            }
-            else if(!sceneField.IsNotSerialized && sceneField.FieldType == typeof(int))
-            {
-                sceneField.SetValue(newScene, (int)sceneData.GetNumber(sceneField.Name).Value);    
-            }
-            else if(!sceneField.IsNotSerialized && sceneField.FieldType == typeof(bool))
-            {
-                sceneField.SetValue(newScene, sceneData.GetBoolean(sceneField.Name));    
-            }
-            else if(!sceneField.IsNotSerialized && sceneField.FieldType == typeof(float))
-            {
-                sceneField.SetValue(newScene, sceneData.GetFloat(sceneField.Name));    
-            }
-            else if(!sceneField.IsNotSerialized && sceneField.FieldType == typeof(Dictionary<string, object>))
-            {
-                Dictionary<string, object> newDic = new Dictionary<string, object>();
-                GSData dataList = sceneData.GetGSData("states");
-                foreach(var elem in dataList.BaseData)
-                {
-                    if(sceneData.GetGSData("states").GetGSData(elem.Key) != null)
-                    {
-                        GSData stateGSData = sceneData.GetGSData("states").GetGSData(elem.Key);
-                        newDic.Add(elem.Key, GSDataToObject(sceneData.GetGSData("states").GetGSData(elem.Key), Type.GetType(stateGSData.GetString("type"))));
-                    }
-                    else
-                    {
-                        newDic.Add(elem.Key, elem.Value);
-                    }
-                }
-                newScene.states = newDic;
-            }   
-        }
-        newScene.Print();
-
-        return newScene;
-    }
+//    public SceneState GSResponseToSceneState(GSData sceneData)
+//    {
+//        Debug.LogWarning(sceneData.JSON);
+//        SceneState newScene = new SceneState();
+//        foreach(var sceneField in typeof(SceneState).GetFields())
+//        {
+//            if(!sceneField.IsNotSerialized && sceneField.FieldType == typeof(string))
+//            {
+//                sceneField.SetValue(newScene, sceneData.GetString(sceneField.Name));
+//            }
+//            else if(!sceneField.IsNotSerialized && sceneField.FieldType == typeof(int))
+//            {
+//                sceneField.SetValue(newScene, (int)sceneData.GetNumber(sceneField.Name).Value);    
+//            }
+//            else if(!sceneField.IsNotSerialized && sceneField.FieldType == typeof(bool))
+//            {
+//                sceneField.SetValue(newScene, sceneData.GetBoolean(sceneField.Name));    
+//            }
+//            else if(!sceneField.IsNotSerialized && sceneField.FieldType == typeof(float))
+//            {
+//                sceneField.SetValue(newScene, sceneData.GetFloat(sceneField.Name));    
+//            }
+//            else if(!sceneField.IsNotSerialized && sceneField.FieldType == typeof(Dictionary<string, object>))
+//            {
+//                Dictionary<string, object> newDic = new Dictionary<string, object>();
+//                GSData dataList = sceneData.GetGSData("states");
+//                foreach(var elem in dataList.BaseData)
+//                {
+//                    if(sceneData.GetGSData("states").GetGSData(elem.Key) != null)
+//                    {
+//                        GSData stateGSData = sceneData.GetGSData("states").GetGSData(elem.Key);
+//                        newDic.Add(elem.Key, GSDataToObject(sceneData.GetGSData("states").GetGSData(elem.Key), Type.GetType(stateGSData.GetString("type"))));
+//                    }
+//                    else
+//                    {
+//                        newDic.Add(elem.Key, elem.Value);
+//                    }
+//                }
+//                newScene.states = newDic;
+//            }   
+//        }
+//        newScene.Print();
+//
+//        return newScene;
+//    }
 
     /// <summary>
     /// Sets the state of the scene.
@@ -797,9 +902,7 @@ public class GameSparksManager : MonoBehaviour
     public void SetSceneState(string character_id, string island_id, string scene_id, SceneState sceneState, onRequestSuccess onRequestSuccess, onRequestFailed onRequestFailed)
     {
         Debug.Log("GSM| Parsing SceneState to GSData...");
-
-        GSRequestData sceneData = new GSRequestData();
-        sceneData.AddObject("scene_state", ObjectToGSData(sceneState));
+        GSRequestData sceneData = GameSparksSerialiser.ObjectToGSData(sceneState);
         Debug.LogWarning(sceneData.JSON);
 
         Debug.Log("Attempting To Set Scene State ...");
@@ -1086,6 +1189,7 @@ public class GameSparksManager : MonoBehaviour
             .SetDurable(true)
             .Send((response) =>
             {
+                    Debug.LogWarning(response.JSONString);
                 if (!response.HasErrors)
                 {
                     Debug.Log("GSM| Character Created....");
@@ -1299,16 +1403,99 @@ public class GameSparksManager : MonoBehaviour
     #region System
 
     /// <summary>
+    /// receives an asset bundle details for the shortcode requested
+    /// </summary>
+    public delegate void onGetAssetBundle(AssetBundleDetails assetBundle);
+
+    /// <summary>
+    /// receives an asset bundle details for the shortcodes requested
+    /// </summary>
+    public delegate void onGetAssetBundles(AssetBundleDetails[] assetBundles);
+
+    /// <summary>
+    /// Gets the asset bundle.
+    /// </summary>
+    /// <param name="asset_bundle_id">Asset bundle identifier.</param>
+    /// <param name="onGetAssetBundle">Receives asset bundle setails</param>
+    /// <param name="onRequestFailed">On request failed. callback, Receives GameSparksError, contains enum & string errorString</param>
+    public void GetAssetBundle(string asset_bundle_id,  onGetAssetBundle onGetAssetBundle, onRequestFailed onRequestFailed)
+    {
+        Debug.Log("GSM| Fecthing Asset Bundle Details...");
+        GSRequestData requestData = new GSRequestData();
+        requestData.AddString("asset_bundle_id", asset_bundle_id);
+        new GameSparks.Api.Requests.LogEventRequest().SetEventKey("getAssetBundle")
+            .SetEventAttribute("asset_bundle_id", requestData)
+            .Send((response) => 
+            {
+                if (!response.HasErrors)
+                {
+                    if(onGetAssetBundle != null)
+                    {
+                        onGetAssetBundle(new AssetBundleDetails(response.ScriptData.GetGSData("@getAssetBundle")));
+                    }
+                }
+                else
+                {
+                    if(onRequestFailed != null)
+                    {
+                        onRequestFailed(new GameSparksError(ProcessGSErrors(response.Errors)));
+                    }
+                }
+            });
+    }
+
+    /// <summary>
+    /// Gets the asset bundles.
+    /// </summary>
+    /// <param name="asset_bundles">Aa list of asset bundle codes.</param>
+    /// <param name="onGetAssetBundles">Receives an array of asset bundles</param>
+    /// <param name="onRequestFailed">On request failed. callback, Receives GameSparksError, contains enum & string errorString</param>
+    public void GetAssetBundles(List<string> asset_bundles, onGetAssetBundles onGetAssetBundles, onRequestFailed onRequestFailed)
+    {
+        Debug.Log("GSM| Fecthing Asset Bundle Details...");
+        GSRequestData requestData = new GSRequestData();
+        requestData.AddStringList("asset_bundles", asset_bundles);
+        new GameSparks.Api.Requests.LogEventRequest().SetEventKey("getAssetBundle")
+            .SetEventAttribute("asset_bundle_id", requestData)
+            .Send((response) => 
+                {
+                    Debug.LogWarning(response.JSONString);
+                    if (!response.HasErrors)
+                    {
+                        if(onGetAssetBundles != null)
+                        {
+                            List<AssetBundleDetails> bundleList = new List<AssetBundleDetails>();
+                            foreach(var assetbundleDetails in response.ScriptData.GetGSDataList("@getAssetBundle"))
+                            {
+                                bundleList.Add(new AssetBundleDetails(assetbundleDetails));
+                            }
+                            onGetAssetBundles(bundleList.ToArray());
+                        }
+                    }
+                    else
+                    {
+                        if(onRequestFailed != null)
+                        {
+                            onRequestFailed(new GameSparksError(ProcessGSErrors(response.Errors)));
+                        }
+                    }
+                });
+    }
+
+
+    /// <summary>
     /// receives the server version for the current snapshot
     /// </summary>
-    public delegate void onGetServerVersion(string version, DateTime versionDate);
+    public delegate void onGetServerVersion(ServerVersionResponse serverVersion);
+
+    public delegate void onIncorrectServerVersion(GameSparksError error, ServerVersionResponse serverVersion);
 
     /// <summary>
     /// Gets the server version.
     /// </summary>
     /// <param name="onGetServerVersion">On get server version. callback, string, server version</param>
     /// <param name="onRequestFailed">On request failed. callback, Receives GameSparksError, contains enum & string errorString</param>
-    public void GetServerVersion(onGetServerVersion onGetServerVersion, onRequestFailed onRequestFailed)
+    public void GetServerVersion(onGetServerVersion onGetServerVersion, onIncorrectServerVersion onIncorrectServerVersion)
     {
         Debug.Log("GSM| Fetching Server Version...");
         new GameSparks.Api.Requests.LogEventRequest().SetEventKey("getServerVersion")
@@ -1317,26 +1504,233 @@ public class GameSparksManager : MonoBehaviour
             {
                 if (!response.HasErrors)
                 {
-                    string version = null;
-                    DateTime versionDate = DateTime.MinValue; // since dates cannot be null, one way to check the version-date is valid is to use the min-date
-                    if(response.ScriptData.GetNumber("version").HasValue && response.ScriptData.GetString("created") != null)
+                    onGetServerVersion(new ServerVersionResponse(response.ScriptData.GetGSData("server_version")));
+                }
+                else
+                {
+                    if (onIncorrectServerVersion != null)
                     {
-                        version = response.ScriptData.GetNumber("version").Value.ToString();
-                        versionDate = DateTime.Parse(response.ScriptData.GetString("created"));
+                        onIncorrectServerVersion(new GameSparksError(ProcessGSErrors(response.Errors)), new ServerVersionResponse(response.ScriptData.GetGSData("server_version")));
                     }
-                    if (version != null && versionDate != DateTime.MinValue)
+                }
+            });
+    }
+
+    #endregion
+
+    #region  Currency
+
+    /// <summary>
+    /// Receives int, the number of coins converted from moonstones, and the current player balance
+    /// </summary>
+    public delegate void onConvertToCoins(int coinsConverted, CurrencyBalance balance);
+
+    public delegate void onCurrencyRequestSuccess(CurrencyBalance balance);
+
+    /// <summary>
+    /// Converts a number of Moonstones to Coins
+    /// </summary>
+    /// <param name="n_moonstones">No. of moonstones.</param>
+    /// <param name="onConvertToCoins">receives the current balance for the player and the number of coins.</param>
+    /// <param name="onRequestFailed">On request failed. callback, Receives GameSparksError, contains enum & string errorString</param>
+    public void ConvertToCoins(int n_moonstones, onConvertToCoins onConvertToCoins, onRequestFailed onRequestFailed)
+    {
+        Debug.Log("GSM| Converting Moonstones ["+n_moonstones+"] to Coins...");
+        new GameSparks.Api.Requests.LogEventRequest().SetEventKey("convertToCoins")
+            .SetEventAttribute("n_moonstones", n_moonstones)
+            .Send((response) => 
+            {
+                if (!response.HasErrors)
+                {
+                    if(onConvertToCoins != null)
                     {
-                        Debug.Log("GSM| Server v" + version);
-                        onGetServerVersion(version, versionDate);
-                    }
-                    else
-                    {
-                        Debug.LogWarning("GSM| Server Error! [server version returned 'null']");
+                        onConvertToCoins((int)response.ScriptData.GetNumber("coins_converted").Value, new CurrencyBalance(response.ScriptData.GetGSData("@convertToCoins")));
                     }
                 }
                 else
                 {
-                    if (onRequestFailed != null)
+                    if(onRequestFailed != null)
+                    {
+                        onRequestFailed(new GameSparksError(ProcessGSErrors(response.Errors)));
+                    }
+                }
+            });
+    }
+
+    /// <summary>
+    /// Adds the coins for completing a given event.
+    /// </summary>
+    /// <param name="eventName">Event name.</param>
+    /// <param name="onCurrencyRequestSuccess">receives the current balance for the player</param>
+    /// <param name="onRequestFailed">On request failed. callback, Receives GameSparksError, contains enum & string errorString</param>
+    public void AddCoinsForCompletedEvent(string eventName, onCurrencyRequestSuccess onCurrencyRequestSuccess, onRequestFailed onRequestFailed)
+    {
+        Debug.Log("GSM| Adding Coins For Event Completion...");
+        new GameSparks.Api.Requests.LogEventRequest().SetEventKey("addCoinsForCompletedEvent")
+            .SetEventAttribute("eventName", eventName)
+            .SetDurable(true)
+            .Send((response) => 
+            {
+                if (!response.HasErrors)
+                {
+                    if(onCurrencyRequestSuccess != null)
+                    {
+                        onCurrencyRequestSuccess(new CurrencyBalance(response.ScriptData.GetGSData("@addCoinsForCompletedEvent")));
+                    }
+                }
+                else
+                {
+                    if(onRequestFailed != null)
+                    {
+                        onRequestFailed(new GameSparksError(ProcessGSErrors(response.Errors)));
+                    }
+                }
+            });
+    }
+
+    /// <summary>
+    /// Purchases an item with the given ID if the user has enough credits
+    /// </summary>
+    /// <param name="itemId">Item ID.</param>
+    /// <param name="onCurrencyRequestSuccess">receives the current balance for the player</param>
+    /// <param name="onRequestFailed">On request failed. callback, Receives GameSparksError, contains enum & string errorString</param>
+    public void PurchaseItem(string character_id, string itemId, onCurrencyRequestSuccess onCurrencyRequestSuccess, onRequestFailed onRequestFailed)
+    {
+        Debug.Log("GSM| Purchasing Item ["+itemId+"]...");
+        new GameSparks.Api.Requests.LogEventRequest().SetEventKey("purchaseItem")
+            .SetEventAttribute("item_id", itemId)
+            .SetEventAttribute("character_id", character_id)
+            .SetDurable(true)
+            .Send((response) => 
+            {
+                if (!response.HasErrors)
+                {
+                    if(onCurrencyRequestSuccess != null)
+                    {
+                        onCurrencyRequestSuccess(new CurrencyBalance(response.ScriptData.GetGSData("@purchaseItem")));
+                    }
+                }
+                else
+                {
+                    if(onRequestFailed != null)
+                    {
+                        onRequestFailed(new GameSparksError(ProcessGSErrors(response.Errors)));
+                    }
+                }
+            });
+    }
+
+    /// <summary>
+    /// receives the current server time and an array of items
+    /// </summary>
+    public delegate void onGetPurchasableItems(DateTime serverTime, Item[] items);
+
+    /// <summary>
+    /// Gets an array of purchasable items.
+    /// </summary>
+    /// <param name="cacheTime">Cache time.</param>
+    /// <param name="onGetPurchasableItems">Oreceives the current server time and an array of purchasable items.</param>
+    /// <param name="onRequestFailed">On request failed. callback, Receives GameSparksError, contains enum & string errorString</param>
+    public void GetPurchasableItems(DateTime cacheTime, onGetPurchasableItems onGetPurchasableItems, onRequestFailed onRequestFailed)
+    {
+        Debug.Log("GSM| Fetching Purchasable Items...");
+        new GameSparks.Api.Requests.LogEventRequest().SetEventKey("getPurchasableItems")
+            .SetEventAttribute("cache_time", ToUnixTimestamp(cacheTime))
+            .Send((response) => 
+            {
+                if (!response.HasErrors)
+                {
+                    if(onGetPurchasableItems != null)
+                    {
+                        List<Item> itemList = new List<Item>();
+                        foreach(var itemDetails in response.ScriptData.GetGSDataList("@getPurchasableItems"))
+                        {
+                            itemList.Add(new Item(itemDetails));
+                        }
+                        onGetPurchasableItems(response.ScriptData.GetDate("server_time").Value, itemList.ToArray());
+                    }
+                }
+                else
+                {
+                    if(onRequestFailed != null)
+                    {
+                        onRequestFailed(new GameSparksError(ProcessGSErrors(response.Errors)));
+                    }
+                }
+            });
+    }
+
+
+    #endregion
+
+    #region Daily Bonus
+
+    /// <summary>
+    /// GameSparksErrorMessage a DailyBonus object which includes the bonus list
+    /// </summary>
+    public delegate void onGetDailyBonusList(DailyBonusList dailyBonusList);
+
+    /// <summary>
+    /// Gets the daily bonus list.
+    /// </summary>
+    /// <param name="character_id">Character ID</param>
+    /// <param name="onGetDailyBonusList">GameSparksErrorMessage a DailyBonus object which includes the bonus list.</param>
+    /// <param name="onRequestFailed">On request failed. callback, Receives GameSparksError, contains enum & string errorString</param>
+    public void GetDailyBonusList(string character_id, onGetDailyBonusList onGetDailyBonusList, onRequestFailed onRequestFailed)
+    {
+        Debug.Log("GSM| Fetching Daily Bonus List...");
+        new GameSparks.Api.Requests.LogEventRequest().SetEventKey("getDailyBonusList")
+            .SetEventAttribute("character_id" , character_id)
+            .Send((response) => 
+            {
+                if (!response.HasErrors)
+                {
+                    if(onGetDailyBonusList != null)
+                    {
+                        onGetDailyBonusList(new DailyBonusList(response.ScriptData));
+                    }
+                }
+                else
+                {
+                    if(onRequestFailed != null)
+                    {
+                        onRequestFailed(new GameSparksError(ProcessGSErrors(response.Errors)));
+                    }
+                }
+            });
+    }
+
+    /// <summary>
+    /// Receives a DailyBonus object along with the current user's balance.
+    /// </summary>
+    public delegate void onChooseDailyBonus(DailyBonusList dailyBonusList, CurrencyBalance balance);
+
+    /// <summary>
+    /// Chooses the daily bonus.
+    /// </summary>
+    /// <param name="character_id">Character ID</param>
+    /// <param name="dailyBonusListId">Daily bonus list ID</param>
+    /// <param name="onChooseDailyBonus">Receives a DailyBonus object along with the current user's balance.</param>
+    /// <param name="onRequestFailed">On request failed. callback, Receives GameSparksError, contains enum & string errorString</param>
+    public void ChooseDailyBonus(string character_id, string dailyBonusListId, onChooseDailyBonus onChooseDailyBonus, onRequestFailed onRequestFailed)
+    {
+        Debug.Log("GSM| Choose Daily Bonus...");
+        new GameSparks.Api.Requests.LogEventRequest().SetEventKey("chooseDailyBonus")
+            .SetEventAttribute("character_id" , character_id)
+            .SetEventAttribute("daily_bonus_list_id", dailyBonusListId)
+            .Send((response) => 
+            {
+                if (!response.HasErrors)
+                {
+                    Debug.LogWarning(response.ScriptData.JSON);
+                    if(onChooseDailyBonus != null)
+                    {
+                        onChooseDailyBonus(new DailyBonusList(response.ScriptData), new CurrencyBalance(response.ScriptData.GetGSData("@chooseDailyBonus")));
+                    }
+                }
+                else
+                {
+                    if(onRequestFailed != null)
                     {
                         onRequestFailed(new GameSparksError(ProcessGSErrors(response.Errors)));
                     }
@@ -1374,13 +1768,13 @@ public class GameSparksManager : MonoBehaviour
             {
                 if (!response.HasErrors)
                 {
-                    Debug.Log("GSM| Retrieved Messages....");
+                    Debug.LogWarning(response.ScriptData.JSON);
                     if (onGetMessages != null)
                     {
                         List<InboxMessage> messageList = new List<InboxMessage>();
                         foreach (GSData message  in response.ScriptData.GetGSDataList("messages"))
                         {
-                            messageList.Add(new InboxMessage(message.GetString("messageId"), message.GetGSData("data").GetString("sender-name"), message.GetGSData("data").GetString("from"), message.GetGSData("data").GetString("header"), message.GetGSData("data").GetString("body"), message.GetGSData("data").GetGSData("payload")));
+                            messageList.Add(new InboxMessage(message.GetGSData("data"), message.GetString("messageId")));
                         }
                         onGetMessages(messageList.ToArray());
                     }
@@ -1481,14 +1875,13 @@ public class GameSparksManager : MonoBehaviour
     /// <param name="onRequestFailed">On request failed. Receives GameSparksError, contains enum & string errorString</param>
     public void DeleteMessage(string messageID, onRequestSuccess onRequestSuccess, onRequestFailed onRequestFailed)
     {
-        Debug.Log("GSM| Deleting Message " + messageID);
+        Debug.Log("GSM| Deleting Message, " + messageID);
         new GameSparks.Api.Requests.LogEventRequest().SetEventKey("deleteMessage")
             .SetEventAttribute("message_id", messageID)
             .Send((response) =>
             {
                 if (!response.HasErrors)
                 {
-                    Debug.Log("GSM| Message Deleted....");
                     if (onRequestSuccess != null)
                     {
                         onRequestSuccess();
@@ -1504,22 +1897,28 @@ public class GameSparksManager : MonoBehaviour
             });
     }
 
-    public void ReadMessage(string messageID)
+    public void ReadMessage(string messageID, onRequestSuccess onRequestSuccess, onRequestFailed onRequestFailed)
     {
-
-        // THIS IS YET TO BE IMPLEMENTED //
-
-
-//      Debug.Log ("GSM| Deleting Message "+messageID);
-//      new GameSparks.Api.Requests.LogEventRequest().SetEventKey("deleteMessage")
-//          .SetEventAttribute("message_id", messageID)
-//          .Send ((response) => {
-//              if (!response.HasErrors) {
-//                  Debug.Log("GSM| Message Deleted....");
-//              } else {
-//                  Debug.LogError("GSM| Message Not Deleted");
-//              }
-//          });
+      Debug.Log ("GSM| Setting Message As Read, "+messageID);
+        new GameSparks.Api.Requests.LogEventRequest().SetEventKey("readMessage")
+            .SetEventAttribute("message_id", messageID)
+            .Send((response) =>
+                {
+                    if (!response.HasErrors)
+                    {
+                        if (onRequestSuccess != null)
+                        {
+                            onRequestSuccess();
+                        }
+                    }
+                    else
+                    {
+                        if (onRequestFailed != null)
+                        {
+                            onRequestFailed(new GameSparksError(ProcessGSErrors(response.Errors)));
+                        }
+                    }
+                });
     }
 
     #endregion
@@ -2016,10 +2415,18 @@ public class GameSparksManager : MonoBehaviour
 
     #region QUEST
 
-
+    /// <summary>
+    /// GameSparksErrorMessage a QuestData object from the server response
+    /// </summary>
     public delegate void onLoadQuest(QuestData quest);
 
-
+    /// <summary>
+    /// Receives  GSData from the server and casts it to GSData
+    /// </summary>
+    /// <param name="character_id">Character identifier.</param>
+    /// <param name="quest_id">Quest identifier.</param>
+    /// <param name="onLoadQuest">On load quest.</param>
+    /// <param name="onRequestFailed">On request failed. Receives GameSparksError, contains enum & string errorString</</param>
     public void LoadQuest(string character_id, string quest_id,  onLoadQuest onLoadQuest, onRequestFailed onRequestFailed)
     {
         Debug.Log("GMS| Fetching Quest Info...");
@@ -2033,84 +2440,88 @@ public class GameSparksManager : MonoBehaviour
                     {
                         if(onLoadQuest != null && response.ScriptData.GetGSData("questProgress") != null)
                         {
-                            GSData questData = response.ScriptData.GetGSData("questProgress");
-                            QuestData newQuest = new QuestData();
-
-                            foreach(var questField in typeof(QuestData).GetFields())
-                            {
-                                if(questField.FieldType == typeof(string) && !questField.IsNotSerialized)
-                                {
-                                    questField.SetValue(newQuest, questData.GetString(questField.Name));
-                                }
-                                else if(questField.FieldType == typeof(bool) && !questField.IsNotSerialized)
-                                {
-                                    questField.SetValue(newQuest, questData.GetBoolean(questField.Name).GetValueOrDefault(false));
-                                }
-                                else if(questField.FieldType == typeof(int) && !questField.IsNotSerialized)
-                                {
-                                    questField.SetValue(newQuest, questData.GetNumber(questField.Name).GetValueOrDefault(0));
-                                }
-                                else
-                                {
-                                    if(questField.FieldType == typeof(List<string>) && !questField.IsNotSerialized)
-                                    {
-                                        questField.SetValue(newQuest, questData.GetStringList(questField.Name));
-                                    }
-                                    else if(questField.FieldType == typeof(List<StageData>) && !questField.IsNotSerialized)
-                                    {
-                                        List<GSData> respStageList = questData.GetGSDataList("stages");
-                                        List<StageData> stageList = new List<StageData>();
-                                        foreach(GSData gs_stage in respStageList)
-                                        {
-                                            StageData stage = new StageData();
-                                            foreach(var stageField in typeof(StageData).GetFields())
-                                            {
-                                                if(stageField.FieldType == typeof(string) && !stageField.IsNotSerialized)
-                                                {
-                                                    stageField.SetValue(stage, gs_stage.GetString(stageField.Name));
-                                                }
-                                                else if(stageField.FieldType == typeof(bool) && !stageField.IsNotSerialized)
-                                                {
-                                                    stageField.SetValue(stage, gs_stage.GetBoolean(stageField.Name).GetValueOrDefault(false));
-                                                }
-                                                else if(stageField.FieldType == typeof(int) && !stageField.IsNotSerialized)
-                                                {
-                                                    stageField.SetValue(stage, gs_stage.GetNumber(stageField.Name).GetValueOrDefault(0));
-                                                }
-                                                else
-                                                {
-                                                    if(stageField.FieldType == typeof(List<string>) && !stageField.IsNotSerialized)
-                                                    {
-                                                        stageField.SetValue(stage, gs_stage.GetStringList(stageField.Name));
-                                                    }
-                                                    else if(stageField.FieldType == typeof(List<QuestStep>)  && !stageField.IsNotSerialized)
-                                                    {
-                                                        List<GSData> respStepList = gs_stage.GetGSDataList("steps");
-                                                        List<QuestStep> stepList = new List<QuestStep>();
-                                                        foreach(GSData gs_step in respStepList)
-                                                        {
-                                                            QuestStep step = new QuestStep();
-                                                            foreach(var stepField in typeof(QuestStep).GetFields())
-                                                            {
-                                                                if(stepField.FieldType == typeof(string)  && !stepField.IsNotSerialized)
-                                                                {
-                                                                    stepField.SetValue(step, gs_step.GetString(stepField.Name));
-                                                                }
-                                                            }
-                                                            stepList.Add(step);
-                                                        }
-                                                        stage.SetSteps(stepList);
-                                                    }
-                                                }
-                                            }
-                                            stageList.Add(stage);
-                                        }
-                                        newQuest.SetStages(stageList);
-                                    }
-                                }
-                            }
-                            onLoadQuest(newQuest);
+                            onLoadQuest((QuestData)GameSparksSerialiser.GSDataToObject(response.ScriptData.GetGSData("questProgress")));
                         }
+//                        if(onLoadQuest != null && response.ScriptData.GetGSData("questProgress") != null)
+//                        {
+//                            GSData questData = response.ScriptData.GetGSData("questProgress");
+//                            QuestData newQuest = new QuestData();
+//
+//                            foreach(var questField in typeof(QuestData).GetFields())
+//                            {
+//                                if(questField.FieldType == typeof(string) && !questField.IsNotSerialized)
+//                                {
+//                                    questField.SetValue(newQuest, questData.GetString(questField.Name));
+//                                }
+//                                else if(questField.FieldType == typeof(bool) && !questField.IsNotSerialized)
+//                                {
+//                                    questField.SetValue(newQuest, questData.GetBoolean(questField.Name).GetValueOrDefault(false));
+//                                }
+//                                else if(questField.FieldType == typeof(int) && !questField.IsNotSerialized)
+//                                {
+//                                    questField.SetValue(newQuest, questData.GetNumber(questField.Name).GetValueOrDefault(0));
+//                                }
+//                                else
+//                                {
+//                                    if(questField.FieldType == typeof(List<string>) && !questField.IsNotSerialized)
+//                                    {
+//                                        questField.SetValue(newQuest, questData.GetStringList(questField.Name));
+//                                    }
+//                                    else if(questField.FieldType == typeof(List<StageData>) && !questField.IsNotSerialized)
+//                                    {
+//                                        List<GSData> respStageList = questData.GetGSDataList("stages");
+//                                        List<StageData> stageList = new List<StageData>();
+//                                        foreach(GSData gs_stage in respStageList)
+//                                        {
+//                                            StageData stage = new StageData();
+//                                            foreach(var stageField in typeof(StageData).GetFields())
+//                                            {
+//                                                if(stageField.FieldType == typeof(string) && !stageField.IsNotSerialized)
+//                                                {
+//                                                    stageField.SetValue(stage, gs_stage.GetString(stageField.Name));
+//                                                }
+//                                                else if(stageField.FieldType == typeof(bool) && !stageField.IsNotSerialized)
+//                                                {
+//                                                    stageField.SetValue(stage, gs_stage.GetBoolean(stageField.Name).GetValueOrDefault(false));
+//                                                }
+//                                                else if(stageField.FieldType == typeof(int) && !stageField.IsNotSerialized)
+//                                                {
+//                                                    stageField.SetValue(stage, gs_stage.GetNumber(stageField.Name).GetValueOrDefault(0));
+//                                                }
+//                                                else
+//                                                {
+//                                                    if(stageField.FieldType == typeof(List<string>) && !stageField.IsNotSerialized)
+//                                                    {
+//                                                        stageField.SetValue(stage, gs_stage.GetStringList(stageField.Name));
+//                                                    }
+//                                                    else if(stageField.FieldType == typeof(List<QuestStep>)  && !stageField.IsNotSerialized)
+//                                                    {
+//                                                        List<GSData> respStepList = gs_stage.GetGSDataList("steps");
+//                                                        List<QuestStep> stepList = new List<QuestStep>();
+//                                                        foreach(GSData gs_step in respStepList)
+//                                                        {
+//                                                            QuestStep step = new QuestStep();
+//                                                            foreach(var stepField in typeof(QuestStep).GetFields())
+//                                                            {
+//                                                                if(stepField.FieldType == typeof(string)  && !stepField.IsNotSerialized)
+//                                                                {
+//                                                                    stepField.SetValue(step, gs_step.GetString(stepField.Name));
+//                                                                }
+//                                                            }
+//                                                            stepList.Add(step);
+//                                                        }
+//                                                        stage.SetSteps(stepList);
+//                                                    }
+//                                                }
+//                                            }
+//                                            stageList.Add(stage);
+//                                        }
+//                                        newQuest.SetStages(stageList);
+//                                    }
+//                                }
+//                            }
+//                            onLoadQuest(newQuest);
+//                        }
                     }
                     else
                     {
@@ -2122,10 +2533,16 @@ public class GameSparksManager : MonoBehaviour
                 });
     }
 
-
+    /// <summary>
+    /// Saves the to the server as GSData
+    /// </summary>
+    /// <param name="character_id">Character identifier.</param>
+    /// <param name="quest">Quest.</param>
+    /// <param name="onRequestSuccess">On request success.</param>
+    /// <param name="onRequestFailed">On request failed.</param>
     public void SaveQuest(string character_id, QuestData quest,  onRequestSuccess onRequestSuccess, onRequestFailed onRequestFailed)
     {
-        GSRequestData gsQuestData = ObjectToGSData(quest) as GSRequestData;
+        GSRequestData gsQuestData = GameSparksSerialiser.ObjectToGSData(quest);// ObjectToGSData(quest) as GSRequestData;
         Debug.Log("GMS| Saving Quest Info...");
         new GameSparks.Api.Requests.LogEventRequest().SetEventKey("saveQuest")
             .SetEventAttribute("character_id", character_id)
@@ -2156,135 +2573,135 @@ public class GameSparksManager : MonoBehaviour
 
     #endregion
 
-    /// <summary>
-    /// Converts a given object to GSdata for sending to the server.
-    /// Converts string, bool, int, float, bool, QuestData, QuestStep, StageData, SceneState and list of these types.
-    /// It also serialises Dictionary<string, object> or these types
-    /// </summary>
-    /// <returns>The to GS data.</returns>
-    /// <param name="obj">Object.</param>
-    public GSData ObjectToGSData(object obj)
-    {
-        GSRequestData gsData = new GSRequestData();
-        gsData.AddString("type", obj.GetType().ToString());
-        foreach(var field in obj.GetType().GetFields())
-        {
-            if(!field.IsNotSerialized && field.GetValue(obj) != null && field.FieldType == typeof(Dictionary<string, object>))
-            {
-                GSRequestData dictionaryData = new GSRequestData();
-                foreach(KeyValuePair<string, object> entry in  field.GetValue(obj) as Dictionary<string, object>)
-                {
-                    if(entry.Value.GetType() == typeof(string))
-                    {
-                        dictionaryData.AddString(entry.Key, entry.Value.ToString());
-                    }
-                    else if(entry.Value.GetType() == typeof(int) || entry.Value.GetType() == typeof(float))
-                    {
-                        dictionaryData.AddNumber(entry.Key, (entry.Value.GetType() == typeof(int)) ? Int32.Parse(entry.Value.ToString()) : Convert.ToDouble(entry.Value.ToString()) );
-                    }
-                    else 
-                    {
-                        dictionaryData.AddObject(entry.Key, ObjectToGSData(entry.Value));
-                    }
-                }
-                gsData.AddObject(field.Name, dictionaryData);
-            }
-            else if(!field.IsNotSerialized && field.GetValue(obj) != null && field.GetValue(obj).GetType() == typeof(bool))
-            {
-                gsData.AddBoolean(field.Name, bool.Parse(field.GetValue(obj).ToString()));
-            }
-            else if(!field.IsNotSerialized && field.GetValue(obj) != null && (field.GetValue(obj).GetType() == typeof(int) || field.GetValue(obj).GetType() == typeof(float)))
-            {
-                gsData.AddNumber(field.Name, (field.GetValue(obj).GetType() == typeof(int)) ? Convert.ToInt32(field.GetValue(obj)) : Convert.ToDouble(field.GetValue(obj)) );
-            }
-            else if(!field.IsNotSerialized && field.GetValue(obj) != null && field.GetValue(obj).GetType() == typeof(string))
-            {
-                gsData.AddString(field.Name, field.GetValue(obj).ToString());
-            }
-            else if(!field.IsNotSerialized && field.GetValue(obj) != null && (field.GetValue(obj).GetType() == typeof(List<string>) || field.GetValue(obj).GetType() == typeof(string[])))
-            {
-                gsData.AddStringList(field.Name,  (field.GetValue(obj).GetType() == typeof(List<string>)) ? field.GetValue(obj) as List<string> : new List<string>(field.GetValue(obj) as string[]));
-            }
-            else if(!field.IsNotSerialized && field.GetValue(obj) != null && (field.GetValue(obj).GetType() == typeof(List<int>) || field.GetValue(obj).GetType() == typeof(int[])))
-            {
-                gsData.AddNumberList(field.Name,  (field.GetValue(obj).GetType() == typeof(List<int>)) ? field.GetValue(obj) as List<int> : new List<int>(field.GetValue(obj) as int[]));
-            }
-            else if(!field.IsNotSerialized && field.GetValue(obj) != null && (field.GetValue(obj).GetType() == typeof(List<float>) || field.GetValue(obj).GetType() == typeof(float[])))
-            {
-                gsData.AddNumberList(field.Name,  (field.GetValue(obj).GetType() == typeof(List<float>)) ? field.GetValue(obj) as List<float> : new List<float>(field.GetValue(obj) as float[]));
-            }
-            else if(!field.IsNotSerialized && field.GetValue(obj) != null && (field.GetValue(obj).GetType() == typeof(List<bool>)))
-            {
-                GSRequestData boolData = new GSRequestData();
-                List<bool> boolList = field.GetValue(obj) as List<bool>;
-                for(int i = 0; i < boolList.Count; i++)
-                {
-                    boolData.AddBoolean(i.ToString(), boolList[i]);
-                }
-                gsData.AddObject(field.Name, boolData);
-            }
-            else if(!field.IsNotSerialized && field.GetValue(obj) != null && (field.GetValue(obj).GetType() == typeof(bool[])))
-            {
-                GSRequestData boolData = new GSRequestData();
-                bool[] boolList = field.GetValue(obj) as bool[];
-                for(int i = 0; i < boolList.Length; i++)
-                {
-                    boolData.AddBoolean(i.ToString(), boolList[i]);
-                }
-                gsData.AddObject(field.Name, boolData);
-            }
-            else if(!field.IsNotSerialized && field.GetValue(obj) != null && field.FieldType == typeof(QuestStep))
-            {
-                gsData.AddObject(field.Name, ObjectToGSData(field.GetValue(obj)));
-            }
-            else if(!field.IsNotSerialized && field.GetValue(obj) != null && field.FieldType == typeof(List<QuestStep>))
-            {
-                List<GSData> questList = new List<GSData>();
-                foreach(QuestStep qs in field.GetValue(obj) as List<QuestStep>)
-                {
-                    questList.Add(ObjectToGSData(qs));
-                }
-                gsData.AddObjectList(field.Name, questList);
-            }
-            else if(!field.IsNotSerialized && field.GetValue(obj) != null && field.FieldType == typeof(StageData))
-            {
-                gsData.AddObject(field.Name, ObjectToGSData(field.GetValue(obj)));
-            }
-            else if(!field.IsNotSerialized && field.GetValue(obj) != null && field.FieldType == typeof(List<StageData>))
-            {
-                List<GSData> stageDataList = new List<GSData>();
-                foreach(StageData sd in field.GetValue(obj) as List<StageData>)
-                {
-                    stageDataList.Add(ObjectToGSData(sd));
-                }
-                gsData.AddObjectList(field.Name, stageDataList);
-            }
-            else if(!field.IsNotSerialized && field.GetValue(obj) != null && field.FieldType == typeof(QuestData))
-            {
-                gsData.AddObject(field.Name, ObjectToGSData(field.GetValue(obj)));
-            }
-            else if(!field.IsNotSerialized && field.GetValue(obj) != null && field.FieldType == typeof(List<QuestData>))
-            {
-                List<GSData> questDataList = new List<GSData>();
-                foreach(QuestData qd in field.GetValue(obj) as List<QuestData>)
-                {
-                    questDataList.Add(ObjectToGSData(qd));
-                }
-                gsData.AddObjectList(field.Name, questDataList);
-            }
-
-        }
-        return gsData;
-    }
+//    /// <summary>
+//    /// Converts a given object to GSdata for sending to the server.
+//    /// Converts string, bool, int, float, bool, QuestData, QuestStep, StageData, SceneState and list of these types.
+//    /// It also serialises Dictionary<string, object> or these types
+//    /// </summary>
+//    /// <returns>The to GS data.</returns>
+//    /// <param name="obj">Object.</param>
+//    public GSData ObjectToGSData(object obj)
+//    {
+//        GSRequestData gsData = new GSRequestData();
+//        gsData.AddString("type", obj.GetType().ToString());
+//        foreach(var field in obj.GetType().GetFields())
+//        {
+//            if(!field.IsNotSerialized && field.GetValue(obj) != null && field.FieldType == typeof(Dictionary<string, object>))
+//            {
+//                GSRequestData dictionaryData = new GSRequestData();
+//                foreach(KeyValuePair<string, object> entry in  field.GetValue(obj) as Dictionary<string, object>)
+//                {
+//                    if(entry.Value.GetType() == typeof(string))
+//                    {
+//                        dictionaryData.AddString(entry.Key, entry.Value.ToString());
+//                    }
+//                    else if(entry.Value.GetType() == typeof(int) || entry.Value.GetType() == typeof(float))
+//                    {
+//                        dictionaryData.AddNumber(entry.Key, (entry.Value.GetType() == typeof(int)) ? Int32.Parse(entry.Value.ToString()) : Convert.ToDouble(entry.Value.ToString()) );
+//                    }
+//                    else 
+//                    {
+//                        dictionaryData.AddObject(entry.Key, ObjectToGSData(entry.Value));
+//                    }
+//                }
+//                gsData.AddObject(field.Name, dictionaryData);
+//            }
+//            else if(!field.IsNotSerialized && field.GetValue(obj) != null && field.GetValue(obj).GetType() == typeof(bool))
+//            {
+//                gsData.AddBoolean(field.Name, bool.Parse(field.GetValue(obj).ToString()));
+//            }
+//            else if(!field.IsNotSerialized && field.GetValue(obj) != null && (field.GetValue(obj).GetType() == typeof(int) || field.GetValue(obj).GetType() == typeof(float)))
+//            {
+//                gsData.AddNumber(field.Name, (field.GetValue(obj).GetType() == typeof(int)) ? Convert.ToInt32(field.GetValue(obj)) : Convert.ToDouble(field.GetValue(obj)) );
+//            }
+//            else if(!field.IsNotSerialized && field.GetValue(obj) != null && field.GetValue(obj).GetType() == typeof(string))
+//            {
+//                gsData.AddString(field.Name, field.GetValue(obj).ToString());
+//            }
+//            else if(!field.IsNotSerialized && field.GetValue(obj) != null && (field.GetValue(obj).GetType() == typeof(List<string>) || field.GetValue(obj).GetType() == typeof(string[])))
+//            {
+//                gsData.AddStringList(field.Name,  (field.GetValue(obj).GetType() == typeof(List<string>)) ? field.GetValue(obj) as List<string> : new List<string>(field.GetValue(obj) as string[]));
+//            }
+//            else if(!field.IsNotSerialized && field.GetValue(obj) != null && (field.GetValue(obj).GetType() == typeof(List<int>) || field.GetValue(obj).GetType() == typeof(int[])))
+//            {
+//                gsData.AddNumberList(field.Name,  (field.GetValue(obj).GetType() == typeof(List<int>)) ? field.GetValue(obj) as List<int> : new List<int>(field.GetValue(obj) as int[]));
+//            }
+//            else if(!field.IsNotSerialized && field.GetValue(obj) != null && (field.GetValue(obj).GetType() == typeof(List<float>) || field.GetValue(obj).GetType() == typeof(float[])))
+//            {
+//                gsData.AddNumberList(field.Name,  (field.GetValue(obj).GetType() == typeof(List<float>)) ? field.GetValue(obj) as List<float> : new List<float>(field.GetValue(obj) as float[]));
+//            }
+//            else if(!field.IsNotSerialized && field.GetValue(obj) != null && (field.GetValue(obj).GetType() == typeof(List<bool>)))
+//            {
+//                GSRequestData boolData = new GSRequestData();
+//                List<bool> boolList = field.GetValue(obj) as List<bool>;
+//                for(int i = 0; i < boolList.Count; i++)
+//                {
+//                    boolData.AddBoolean(i.ToString(), boolList[i]);
+//                }
+//                gsData.AddObject(field.Name, boolData);
+//            }
+//            else if(!field.IsNotSerialized && field.GetValue(obj) != null && (field.GetValue(obj).GetType() == typeof(bool[])))
+//            {
+//                GSRequestData boolData = new GSRequestData();
+//                bool[] boolList = field.GetValue(obj) as bool[];
+//                for(int i = 0; i < boolList.Length; i++)
+//                {
+//                    boolData.AddBoolean(i.ToString(), boolList[i]);
+//                }
+//                gsData.AddObject(field.Name, boolData);
+//            }
+//            else if(!field.IsNotSerialized && field.GetValue(obj) != null && field.FieldType == typeof(QuestStep))
+//            {
+//                gsData.AddObject(field.Name, ObjectToGSData(field.GetValue(obj)));
+//            }
+//            else if(!field.IsNotSerialized && field.GetValue(obj) != null && field.FieldType == typeof(List<QuestStep>))
+//            {
+//                List<GSData> questList = new List<GSData>();
+//                foreach(QuestStep qs in field.GetValue(obj) as List<QuestStep>)
+//                {
+//                    questList.Add(ObjectToGSData(qs));
+//                }
+//                gsData.AddObjectList(field.Name, questList);
+//            }
+//            else if(!field.IsNotSerialized && field.GetValue(obj) != null && field.FieldType == typeof(StageData))
+//            {
+//                gsData.AddObject(field.Name, ObjectToGSData(field.GetValue(obj)));
+//            }
+//            else if(!field.IsNotSerialized && field.GetValue(obj) != null && field.FieldType == typeof(List<StageData>))
+//            {
+//                List<GSData> stageDataList = new List<GSData>();
+//                foreach(StageData sd in field.GetValue(obj) as List<StageData>)
+//                {
+//                    stageDataList.Add(ObjectToGSData(sd));
+//                }
+//                gsData.AddObjectList(field.Name, stageDataList);
+//            }
+//            else if(!field.IsNotSerialized && field.GetValue(obj) != null && field.FieldType == typeof(QuestData))
+//            {
+//                gsData.AddObject(field.Name, ObjectToGSData(field.GetValue(obj)));
+//            }
+//            else if(!field.IsNotSerialized && field.GetValue(obj) != null && field.FieldType == typeof(List<QuestData>))
+//            {
+//                List<GSData> questDataList = new List<GSData>();
+//                foreach(QuestData qd in field.GetValue(obj) as List<QuestData>)
+//                {
+//                    questDataList.Add(ObjectToGSData(qd));
+//                }
+//                gsData.AddObjectList(field.Name, questDataList);
+//            }
+//
+//        }
+//        return gsData;
+//    }
 
     /// <summary>
     /// Processes all GameSparks error to get the correct error-string root and parse it to an int for checking
     /// </summary>
     /// <returns>GameSparksError, enum</returns>
     /// <param name="error">GSData Error response</param>
-    public GameSparksErrorMessage ProcessGSErrors(GSData error)
+    public static GameSparksErrorMessage ProcessGSErrors(GSData error)
     {
-        Debug.LogWarning("GSM| Error: " + error.JSON);
+//        Debug.LogWarning("GSM| Error: " + error.JSON);
         if (error.GetString("@authentication") != null)
         {
             return (GameSparksErrorMessage)Enum.Parse(typeof(GameSparksErrorMessage), error.GetString("@authentication"));
@@ -2382,6 +2799,18 @@ public class GameSparksManager : MonoBehaviour
         {
             return (GameSparksErrorMessage)Enum.Parse(typeof(GameSparksErrorMessage), error.GetString("@checkUsername"));
         }
+        else if (error.GetString("@registerTestAccount") != null)
+        {
+            return (GameSparksErrorMessage)Enum.Parse(typeof(GameSparksErrorMessage), error.GetString("@registerTestAccount"));
+        }
+        else if (error.GetString("@addAssetBundle") != null)
+        {
+            return (GameSparksErrorMessage)Enum.Parse(typeof(GameSparksErrorMessage), error.GetString("@addAssetBundle"));
+        }
+        else if (error.GetString("@getAssetBundle") != null)
+        {
+            return (GameSparksErrorMessage)Enum.Parse(typeof(GameSparksErrorMessage), error.GetString("@getAssetBundle"));
+        }
         // INBOX SYSTEM
         else if (error.GetString("@getMessages") != null)
         {
@@ -2398,6 +2827,32 @@ public class GameSparksManager : MonoBehaviour
         else if (error.GetString("@deleteMessage") != null)
         {
             return (GameSparksErrorMessage)Enum.Parse(typeof(GameSparksErrorMessage), error.GetString("@deleteMessage"));
+        }
+        // CURRENCY //
+        else if (error.GetString("@convertToCoins") != null)
+        {
+            return (GameSparksErrorMessage)Enum.Parse(typeof(GameSparksErrorMessage), error.GetString("@convertToCoins"));
+        }
+        else if (error.GetString("@addCoinsForCompletedEvent") != null)
+        {
+            return (GameSparksErrorMessage)Enum.Parse(typeof(GameSparksErrorMessage), error.GetString("@addCoinsForCompletedEvent"));
+        }
+        else if (error.GetString("@purchaseItem") != null)
+        {
+            return (GameSparksErrorMessage)Enum.Parse(typeof(GameSparksErrorMessage), error.GetString("@purchaseItem"));
+        }
+        else if (error.GetString("@getPurchasableItems") != null)
+        {
+            return (GameSparksErrorMessage)Enum.Parse(typeof(GameSparksErrorMessage), error.GetString("@getPurchasableItems"));
+        }
+        // DAILY BONUS //
+        else if (error.GetString("@getDailyBonus") != null)
+        {
+            return (GameSparksErrorMessage)Enum.Parse(typeof(GameSparksErrorMessage), error.GetString("@getDailyBonus"));
+        }
+        else if (error.GetString("@chooseDailyBonus") != null)
+        {
+            return (GameSparksErrorMessage)Enum.Parse(typeof(GameSparksErrorMessage), error.GetString("@chooseDailyBonus"));
         }
         // ISLANDS //
         else if (error.GetString("@getAvailableIslands") != null)
@@ -2445,8 +2900,6 @@ public class GameSparksManager : MonoBehaviour
         {
             return (GameSparksErrorMessage)Enum.Parse(typeof(GameSparksErrorMessage), "not_authorized");
         }
-        Debug.LogError(error.GetString("authentication"));
-
         return (GameSparksErrorMessage)Enum.Parse(typeof(GameSparksErrorMessage), "request_failed");
     }
 
@@ -2475,31 +2928,42 @@ public class GameSparksManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// converts datetime to Unix timestamp
+    /// </summary>
+    public static int ToUnixTimestamp(DateTime value)
+    {
+        return (int)Math.Truncate((value.ToUniversalTime().Subtract(new DateTime(1970, 1, 1))).TotalSeconds);
+    }
+
+
+    public static DateTime UnixTimeStampToDateTime(long unixDate)
+    {
+        DateTime start = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        DateTime date = start.AddMilliseconds(unixDate).ToLocalTime();
+        return date;
+    }
 
 }
 
 
-namespace GameSparks.Api.Messages
-{
+namespace GameSparks.Api.Messages {
 
-    public class ScriptMessage_globalUserMessage : ScriptMessage
-    {
+    public class GlobalUserMessage : ScriptMessage {
 
-        public new static Action<ScriptMessage_globalUserMessage> Listener;
+        public new static Action<GlobalUserMessage> Listener;
 
-        public ScriptMessage_globalUserMessage(GSData data) : base(data)
+        public GlobalUserMessage(GSData data) : base(data){}
+
+        private static GlobalUserMessage Create(GSData data)
         {
-        }
-
-        private static ScriptMessage_globalUserMessage Create(GSData data)
-        {
-            ScriptMessage_globalUserMessage message = new ScriptMessage_globalUserMessage(data);
+            GlobalUserMessage message = new GlobalUserMessage (data);
             return message;
         }
 
-        static ScriptMessage_globalUserMessage()
+        static GlobalUserMessage()
         {
-            handlers.Add(".ScriptMessage_globalUserMessage", Create);
+            handlers.Add (".ScriptMessage_globalUserMessage", Create);
 
         }
 
@@ -2507,30 +2971,25 @@ namespace GameSparks.Api.Messages
         {
             if (Listener != null)
             {
-                Listener(this);
+                Listener (this);
             }
         }
     }
+    public class PrivateUserMessage : ScriptMessage {
 
-    public class ScriptMessage_privateUserMessage : ScriptMessage
-    {
+        public new static Action<PrivateUserMessage> Listener;
 
-        public new static Action<ScriptMessage_privateUserMessage> Listener;
+        public PrivateUserMessage(GSData data) : base(data){}
 
-        public ScriptMessage_privateUserMessage(GSData data)
-            : base(data)
+        private static PrivateUserMessage Create(GSData data)
         {
-        }
-
-        private static ScriptMessage_privateUserMessage Create(GSData data)
-        {
-            ScriptMessage_privateUserMessage message = new ScriptMessage_privateUserMessage(data);
+            PrivateUserMessage message = new PrivateUserMessage (data);
             return message;
         }
 
-        static ScriptMessage_privateUserMessage()
+        static PrivateUserMessage()
         {
-            handlers.Add(".ScriptMessage_privateUserMessage", Create);
+            handlers.Add (".ScriptMessage_privateUserMessage", Create);
 
         }
 
@@ -2538,7 +2997,33 @@ namespace GameSparks.Api.Messages
         {
             if (Listener != null)
             {
-                Listener(this);
+                Listener (this);
+            }
+        }
+    }
+    public class ServerVersionUpdateMessage : ScriptMessage {
+
+        public new static Action<ServerVersionUpdateMessage> Listener;
+
+        public ServerVersionUpdateMessage(GSData data) : base(data){}
+
+        private static ServerVersionUpdateMessage Create(GSData data)
+        {
+            ServerVersionUpdateMessage message = new ServerVersionUpdateMessage (data);
+            return message;
+        }
+
+        static ServerVersionUpdateMessage()
+        {
+            handlers.Add (".ScriptMessage_serverUpdateVersionMessage", Create);
+
+        }
+
+        override public void NotifyListeners()
+        {
+            if (Listener != null)
+            {
+                Listener (this);
             }
         }
     }
@@ -2604,7 +3089,10 @@ public enum GameSparksErrorMessage
     invalid_character_name,
     not_authorized,
     invalid_response, // used when the response details are invalid i.e. checkusername()
-    invalid_request // used when the request data is incorrect, i.e. checkusername()
+    invalid_request, // used when the request data is incorrect, i.e. checkusername()
+    submit_asset_bundle_failed,
+    invalid_bundle_code,
+    no_wheel_layout
 }
 
 
@@ -2678,6 +3166,90 @@ public class AuthFailed : GameSparksError
     }
 }
 
+public class InboxMessage
+{
+    public string message_id;
+    public string global_message_id;
+
+    public bool read;
+    public bool responded;
+
+    public DateTime creation_time;
+    public DateTime delete_time;
+
+    public string message_type;
+
+    public string subject;
+    public string text;
+
+    public string asset_bundle_id;
+    public string prefab_name;
+
+    public GSData metadata;
+
+    public InboxMessage(GSData gsData, string message_id)
+    {
+        this.message_id = message_id;
+
+        if(gsData.GetString("message_type") != null)
+        {
+            this.message_type = gsData.GetString("message_type");
+            if(message_type == "global" && gsData.GetString("global_message_id") != null)
+            {
+                this.global_message_id = gsData.GetString("global_message_id");
+            }
+        }
+        if(gsData.GetNumber("creation_time").HasValue)
+        {
+            this.creation_time = GameSparksManager.UnixTimeStampToDateTime(gsData.GetNumber("creation_time").Value);
+        }
+        if(gsData.GetNumber("delete_time").HasValue)
+        {
+            this.delete_time = GameSparksManager.UnixTimeStampToDateTime(gsData.GetNumber("delete_time").Value);
+        }
+        if(gsData.GetBoolean("read").HasValue)
+        {
+            this.read = gsData.GetBoolean("read").Value;
+        }
+        if(gsData.GetBoolean("responded").HasValue)
+        {
+            this.read = gsData.GetBoolean("responded").Value;
+        }
+        if(gsData.GetString("subject") != null)
+        {
+            this.subject = gsData.GetString("subject");
+        }
+        if(gsData.GetString("text") != null)
+        {
+            this.text = gsData.GetString("text");
+        }
+        if(gsData.GetString("asset_bundle_id") != null)
+        {
+            this.asset_bundle_id = gsData.GetString("asset_bundle_id");
+        }
+        if(gsData.GetString("prefab_name") != null)
+        {
+            this.prefab_name = gsData.GetString("prefab_name");
+        }
+        if(gsData.GetGSData("metadata") != null)
+        {
+            this.metadata = gsData.GetGSData("metadata");
+        }
+
+    }
+        
+
+    public void Print()
+    {
+        Debug.Log("Message ID: " + message_id + ", subject:"+subject+", text:"+text);
+        Debug.Log("Global ID:"+global_message_id);
+        Debug.Log("Message Type: " + message_type);
+        Debug.Log("Read: " + read + ", responded:"+responded);
+        Debug.Log("Created:"+creation_time.ToString()+", Deleted:"+delete_time.ToString());
+        Debug.Log("MetaData:"+metadata.JSON);
+    }
+}
+
 
 public class AuthResponse
 {
@@ -2729,4 +3301,748 @@ public class ParentEmailStatus
     {
         Debug.Log("Email:" + email + ", Status:" + status + ", Verified:" + verifiedDate + ", Added:" + dateAdded);
     }
+}
+
+public class CheckUsernameResponse
+{
+    public string[] suggestedNames;
+    public string availableName;
+    public bool isPop1Player;
+    public bool isPop2Player;
+
+    public CheckUsernameResponse(string[] suggestedNames, string availableName, bool isPop1Player, bool isPop2Player)
+    {
+        this.suggestedNames = suggestedNames;
+        this.availableName = availableName;
+        this.isPop1Player = isPop1Player;
+        this.isPop2Player = isPop2Player;
+    }
+
+    public void Print()
+    {
+        Debug.Log("isPop1 Player:"+isPop1Player+", isPop2 Player:"+isPop2Player);
+        for(int i = 0; i < suggestedNames.Length; i++)
+        {
+            Debug.Log("Suggestion ["+(i+1)+"] -> "+suggestedNames[i]);
+        }
+    }
+
+}
+
+
+/// <summary>
+/// Used to cpntain information about the latest server version
+/// </summary>
+public class ServerVersionResponse
+{
+    public int currentVersion;
+    public int minVersion;
+    public int maxVersion;
+    public DateTime published;
+    public DateTime created;
+    public string status;
+    public string message;
+
+    public ServerVersionResponse(GSData gsData)
+    {
+        if(gsData.GetNumber("created").HasValue)
+        {
+            this.created = GameSparksManager.UnixTimeStampToDateTime(gsData.GetNumber("created").Value);
+        }
+        if(gsData.GetNumber("published") != null)
+        {
+            this.published = GameSparksManager.UnixTimeStampToDateTime(gsData.GetNumber("published").Value);
+        }
+        if(gsData.GetNumber("current_version").HasValue)
+        {
+            this.currentVersion = (int)gsData.GetNumber("current_version").Value;
+        }
+        if(gsData.GetNumber("max_version").HasValue)
+        {
+            this.maxVersion = (int)gsData.GetNumber("max_version").Value;
+        }
+        if(gsData.GetNumber("min_version").HasValue)
+        {
+            this.minVersion = (int)gsData.GetNumber("min_version").Value;
+        }
+        if(gsData.GetString("status") != null)
+        {
+            this.status = gsData.GetString("status");
+        }
+        if(gsData.GetString("message") != null)
+        {
+            this.message = gsData.GetString("message");
+        }
+    }
+        
+
+    public void Print()
+    {
+        Debug.Log("Curr:"+currentVersion+", Max:"+maxVersion+", Min:"+minVersion);
+        Debug.Log("Date Published:"+published);
+        Debug.Log("Status:"+status);
+    }
+}
+
+public class CurrencyBalance
+{
+    public int moonstone_delta; // Change in moonstone balance
+    public int moonstone_balance; // New moonstone balance
+    public int coin_delta;     // Change in coin balance
+    public int coin_balance; // New coin balance
+
+    public CurrencyBalance(GSData gsData)
+    {
+        this.moonstone_delta = (int)gsData.GetNumber("moonstone_delta").Value;
+        this.moonstone_balance = (int)gsData.GetNumber("moonstone_balance").Value;
+        this.coin_delta = (int)gsData.GetNumber("coin_delta").Value;
+        this.coin_balance = (int)gsData.GetNumber("coin_balance").Value;
+    }
+
+    public void Print()
+    {
+        Debug.Log("MoonStones:"+moonstone_balance+", Coins:"+coin_balance);
+        Debug.Log("MoonStone D:"+moonstone_delta+", Coin D:"+coin_balance);
+    }
+}
+
+
+public class BonusPrize
+{
+    public BonusPrizeTypes type;
+    public int reward;
+    public string itemId;
+    public bool isRespin;
+    public bool grandPrize;
+
+    public BonusPrize(GSData gsData)
+    {
+        this.type = (BonusPrizeTypes)Enum.Parse( typeof(BonusPrizeTypes), gsData.GetString("type") );
+        if(gsData.GetNumber("reward").HasValue)
+        {
+            this.reward = (int)gsData.GetNumber("reward").Value;
+        }
+        this.itemId = gsData.GetString("item_id");
+        this.isRespin = gsData.GetBoolean("respin").Value;
+        this.grandPrize = gsData.GetBoolean("grandPrize").Value;
+    }
+
+    public void Print()
+    {
+        Debug.Log("Type:"+type.ToString()+", reward:"+reward+", itemId:"+itemId+", isRespin:"+isRespin+", grandPrize:"+grandPrize);
+    }
+
+}
+
+public class DailyBonusList
+{
+    public string dailyBonusListId; /* unique Id for this list */
+    public bool readOnly;  /* Set if player cannot spin wheel because it’s too soon */
+    public DateTime nextTime; /* if readOnly set, this is when the player can spin again */
+    public BonusPrize[] wedges;
+
+    public DailyBonusList(GSData gsData)
+    {
+        this.dailyBonusListId = gsData.GetString("daily_bonus_list_id");
+        if(gsData.GetBoolean("readOnly").HasValue)
+        {
+            this.readOnly = gsData.GetBoolean("readOnly").Value;
+        }
+        if(gsData.GetNumber("nextTime").HasValue)
+        {
+            this.nextTime = GameSparksManager.UnixTimeStampToDateTime(gsData.GetNumber("nextTime").Value);  
+        }
+        List<BonusPrize> bonusPrizeList = new List<BonusPrize>();
+        foreach(var gsData_bonusPrize in gsData.GetGSDataList("wedges"))
+        {
+            bonusPrizeList.Add(new BonusPrize(gsData_bonusPrize));
+        }
+        wedges = bonusPrizeList.ToArray();
+    }
+
+    public void Print()
+    {
+        Debug.Log("dailyBonusId:"+dailyBonusListId);
+        Debug.Log("ReadOnly:"+readOnly+", nextTime:"+nextTime);
+        if(wedges != null)
+        {
+
+            foreach(BonusPrize prize in wedges)
+            {
+                prize.Print();
+            }
+        }
+    }
+
+}
+
+public enum BonusPrizeTypes
+{
+    bonus_coins, 
+    bonus_moonstones, 
+    bonus_item
+}
+
+/// <summary>
+/// Game sparks serialiser.
+/// Converts object to GSData and GSData from server response back to objects.
+/// Sean Durkan Sept 2016 for GameSparks Ltd.
+/// </summary>
+public class GameSparksSerialiser
+{
+
+    /// <summary>
+    /// casts GSData to primitive object types.
+    /// string, int, float, double, long, bool
+    /// </summary>
+    /// <returns>primitive data types</returns>
+    /// <param name="gsData">GSData</param>
+    public static object GSDataToPrimitive(GSData gsData)
+    {
+        if(gsData.GetString("type") != null) 
+        {
+            Type objType = Type.GetType(gsData.GetString("type"));
+            object obj = Activator.CreateInstance(objType);
+            if(objType.IsPrimitive || objType.IsValueType || (objType == typeof(string)) )
+            {
+                if(objType.IsSerializable &&  objType == typeof(int))
+                {
+                    obj = (int)gsData.GetNumber("value").Value;
+                }
+                else if(objType.IsSerializable &&  objType == typeof(long))
+                {
+                    obj = (long)gsData.GetNumber("value").Value;
+                }
+                else if(objType.IsSerializable &&  objType == typeof(float))
+                {
+                    obj = gsData.GetFloat("value").Value;
+                }
+                else if(objType.IsSerializable &&  objType == typeof(double))
+                {
+                    obj = (double)gsData.GetDouble("value").Value;
+                }
+                else if(objType.IsSerializable &&  objType == typeof(string))
+                {
+                    obj = (string)gsData.GetString("value");
+                }
+                else if(objType.IsSerializable &&  objType == typeof(bool))
+                {
+                    obj = (bool)gsData.GetBoolean("value");
+                }
+                else
+                {
+                    Debug.LogError("GS-Serializer| Cannot Serialize Type ["+objType.ToString()+"]");
+                }
+            }
+            return obj;
+        }
+        return null;
+    }
+
+
+    /// <summary>
+    /// Convert GSData returned from the server to an object.
+    /// This uses a field in the JSON data to return the correct object type.
+    /// </summary>
+    /// <returns>an object of the type sent to the server</returns>
+    /// <param name="gsData">GSData</param>
+    public static object GSDataToObject(GSData gsData)
+    {
+        // first check that we have a valid type we can convert to //
+        if(gsData.GetString("type") != null) 
+        {
+            Type objType = Type.GetType(gsData.GetString("type"));
+            object obj = Activator.CreateInstance(objType);
+            // check if the object-type is primitive. Primitives are parsed differntly, so this needs to be checked //
+            if(objType.IsPrimitive || objType.IsValueType || (objType == typeof(string)) )
+            {
+                object primitve = GSDataToPrimitive(gsData);
+                if(primitve != null)
+                {
+                    return primitve;
+                }
+            }
+            else
+            {
+                // go through all fields of this object-type and check if anything in our gs-data matches the names and types of those fields //
+                foreach(var typeField in objType.GetFields())
+                {
+                    
+                    // fist check if the field is serializable, otherwise ignore it //
+                    if(!typeField.IsNotSerialized)
+                    {
+                        // check if the JSON data is a dictionary
+                        if(typeField.FieldType.IsGenericType && typeField.FieldType.GetGenericTypeDefinition() == typeof(Dictionary<,>))
+                        {
+                            if(gsData.GetGSData(typeField.Name) != null)
+                            {
+                                typeField.SetValue(obj, GSDataToDictionary(gsData.GetGSData(typeField.Name)));
+                            }
+                        }
+                        // the following types are easily deserialized using GSDataRequest //
+                        else if(!typeField.IsNotSerialized && typeField.FieldType == typeof(string))
+                        {
+                            typeField.SetValue(obj, gsData.GetString(typeField.Name));
+                        }
+                        else if(!typeField.IsNotSerialized && typeField.FieldType == typeof(int))
+                        {
+                            typeField.SetValue(obj, (int)gsData.GetNumber(typeField.Name).Value);    
+                        }
+                        else if(!typeField.IsNotSerialized && typeField.FieldType == typeof(bool))
+                        {
+                            typeField.SetValue(obj, gsData.GetBoolean(typeField.Name));    
+                        }
+                        else if(!typeField.IsNotSerialized && gsData.GetStringList(typeField.Name) != null && ( typeField.FieldType == typeof(List<string>) || typeField.FieldType == typeof(string[]) ))
+                        {
+                            typeField.SetValue(obj, (typeField.FieldType == typeof(List<string>)) ? (object)gsData.GetStringList(typeField.Name) : gsData.GetStringList(typeField.Name).ToArray());  
+                        }
+                        else if(!typeField.IsNotSerialized && (typeField.FieldType == typeof(List<int>) || typeField.FieldType == typeof(int[])) )
+                        {
+                            typeField.SetValue(obj, (typeField.FieldType == typeof(List<int>)) ? (object)gsData.GetIntList(typeField.Name) : gsData.GetIntList(typeField.Name).ToArray());    
+                        }
+                        else if(!typeField.IsNotSerialized && (typeField.FieldType == typeof(List<float>) || typeField.FieldType == typeof(float[])) )
+                        {
+                            typeField.SetValue(obj, (typeField.FieldType == typeof(List<float>)) ? (object)gsData.GetFloatList(typeField.Name) : gsData.GetFloatList(typeField.Name).ToArray());    
+                        }
+                        else if(!typeField.IsNotSerialized && (typeField.FieldType == typeof(List<double>) || typeField.FieldType == typeof(double[])) )
+                        {
+                            typeField.SetValue(obj, (typeField.FieldType == typeof(List<double>)) ? (object)gsData.GetDoubleList(typeField.Name) : gsData.GetDoubleList(typeField.Name).ToArray());    
+                        }
+                        // if the type is a list of objects, then we use IList to deserialize //
+                        else if(!typeField.IsNotSerialized && gsData.GetGSDataList(typeField.Name) != null && typeof(IList).IsAssignableFrom(typeField.FieldType))
+                        {
+                            IList genericList = Activator.CreateInstance(typeField.FieldType) as IList;
+                            foreach(GSData gsDataElem in gsData.GetGSDataList(typeField.Name))
+                            {
+                                object elem = GSDataToObject(gsDataElem);
+                                genericList.Add(elem);
+                            }
+                            typeField.SetValue(obj, genericList);
+                        }
+                        else if(!typeField.IsNotSerialized && typeField.FieldType == typeof(DateTime))
+                        {
+                            typeField.SetValue(obj, gsData.GetDate(typeField.Name));    
+                        }
+                        else if(typeField.FieldType.IsArray)
+                        {
+                            List<GSData> gsArrayData = gsData.GetGSData(typeField.Name).GetGSDataList(typeField.Name);
+                            // create a new instance of the array. The Activator class cannot do this for arrays //
+                            // so this will create a new array of types inside the array, with the count of what is in the gsdata list //
+                            Array newArray = Array.CreateInstance(typeField.FieldType.GetElementType(), gsArrayData.Count);
+                            object[] objArray = new object[gsArrayData.Count]; // create a new array of objects where the serialised objects will be kept
+                            for(int i = 0; i < gsArrayData.Count; i++)
+                            {
+                                objArray[i] = GSDataToObject(gsArrayData[i]); // convert the JSON data inside the list to an object
+                            }
+                            Array.Copy(objArray, newArray, objArray.Length); //covert the object[] to the original type
+                            typeField.SetValue(obj, newArray); 
+                        }
+                    }
+                }
+            }
+            return obj;
+        }
+        else
+        {
+            Debug.LogError("GSM| Invalid GSData...\n No 'type' field found for object");
+        }
+        return null;
+    }
+
+
+
+
+    /// <summary>
+    /// Converts GSData to a dictionary<string, object> if the given GSData is of the approriate type //
+    /// </summary>
+    /// <returns>The data to dictionary.</returns>
+    /// <param name="gsData">GSData</param>
+    public static Dictionary<string, object> GSDataToDictionary(GSData gsData)
+    {
+        Dictionary<string, object> newDictionary = new Dictionary<string, object>();
+        foreach(var dictionaryElem in gsData.BaseData)
+        {
+            Type thisType = Type.GetType(gsData.GetGSData(dictionaryElem.Key).GetString("type")); // get the element object-type
+            // this is needed as there is no default constructor for strings //
+            if(thisType == typeof(string))
+            {
+                newDictionary.Add(dictionaryElem.Key, gsData.GetGSData(dictionaryElem.Key).GetString("value"));
+            }
+            // lists and arrays inside dictionary objects also need special treatment as they require to be grouped into objects with their type //
+            else if(gsData.GetGSData(dictionaryElem.Key).GetIntList("value") != null && thisType == typeof(List<int>) || thisType == typeof(int[]))
+            {
+                newDictionary.Add(dictionaryElem.Key, (thisType == typeof(List<int>)) ? (object)gsData.GetGSData(dictionaryElem.Key).GetIntList("value") : gsData.GetGSData(dictionaryElem.Key).GetIntList("value").ToArray()); 
+            }
+            else if(thisType == typeof(List<string>) || thisType == typeof(string[]))
+            {
+                newDictionary.Add(dictionaryElem.Key, (thisType == typeof(List<int>)) ? (object)gsData.GetGSData(dictionaryElem.Key).GetStringList("value") : gsData.GetGSData(dictionaryElem.Key).GetStringList("value").ToArray()); 
+            }
+            else if(thisType == typeof(List<float>) || thisType == typeof(float[]))
+            {
+                newDictionary.Add(dictionaryElem.Key, (thisType == typeof(List<int>)) ? (object)gsData.GetGSData(dictionaryElem.Key).GetFloatList("value") : gsData.GetGSData(dictionaryElem.Key).GetFloatList("value").ToArray()); 
+            }
+            else // the simplest to convert are objects of class-types. These can be parsed by passing them back into the GSDataToObject method
+            {
+                newDictionary.Add(dictionaryElem.Key, GSDataToObject(gsData.GetGSData(dictionaryElem.Key)));
+            }
+        }
+        return newDictionary;
+    }
+
+    /// <summary>
+    /// Dictionaries to GS data.
+    /// </summary>
+    /// <returns>The to GS data.</returns>
+    /// <param name="dictionary">Dictionary.</param>
+    public static GSRequestData DictionaryToGSData(IDictionary dictionary)
+    {
+        // first we check if the dictionary has some elements in it, otherwise we return null
+        if(dictionary.Count > 0) // make sure there is some data in the dictionary. We dont need to create empty objects
+        {
+            GSRequestData dictionaryData = new GSRequestData(); // the dictionary data will be serialized to this object
+            foreach(var dictionaryElement in dictionary)
+            {
+                DictionaryEntry entry = (DictionaryEntry)dictionaryElement; // create a dictionary element from the generic dictionary data
+                // we check if the first key is a string, as we cannot parse objects as keys atm //
+                // we are also going to make sure that the object is serialazable //
+                if(entry.Key.GetType() == typeof(string)) 
+                {
+                    // the data is stored along with the value and type, so we can get the data back as the correct object-type //
+                    GSRequestData gsEntryData = new GSRequestData();
+                    // check for string lists and arrays //
+                    if(entry.Value.GetType().IsSerializable && entry.Value.GetType() == typeof(List<string>) || entry.Value.GetType() == typeof(string[]))
+                    {
+                        gsEntryData.Add("type", entry.Value.GetType());
+                        gsEntryData.AddStringList("value",  (entry.Value.GetType() == typeof(List<string>)) ? entry.Value as List<string> : new List<string>(entry.Value as string[]));
+                        dictionaryData.AddObject(entry.Key.ToString(), gsEntryData);
+                    }
+                    // check for list or array of ints //
+                    else if(entry.Value.GetType().IsSerializable && entry.Value.GetType() == typeof(List<int>) || entry.Value.GetType() == typeof(int[]))
+                    {
+                        gsEntryData.Add("type", entry.Value.GetType());
+                        gsEntryData.AddNumberList("value",  (entry.Value.GetType() == typeof(List<int>)) ? entry.Value as List<int> : new List<int>(entry.Value as int[]));
+                        dictionaryData.AddObject(entry.Key.ToString(), gsEntryData);
+                    }
+                    // check for arry or list of floats //
+                    else if(entry.Value.GetType().IsSerializable && entry.Value.GetType() == typeof(List<float>) || entry.Value.GetType() == typeof(float[]))
+                    {
+                        gsEntryData.Add("type", entry.Value.GetType());
+                        gsEntryData.AddNumberList("value",  (entry.Value.GetType() == typeof(List<float>)) ? entry.Value as List<float> : new List<float>(entry.Value as float[]));
+                        dictionaryData.AddObject(entry.Key.ToString(), gsEntryData);
+                    }
+                    // check for arry or list of double //
+                    else if(entry.Value.GetType().IsSerializable && entry.Value.GetType() == typeof(List<double>) || entry.Value.GetType() == typeof(double[]))
+                    {
+                        gsEntryData.Add("type", entry.Value.GetType());
+                        gsEntryData.AddNumberList("value",  (entry.Value.GetType() == typeof(List<double>)) ? entry.Value as List<double> : new List<double>(entry.Value as double[]));
+                        dictionaryData.AddObject(entry.Key.ToString(), gsEntryData);
+                    }
+                    // otherwise this object is a class or a primitive, so we send it through the object-to-gsdata again //
+                    else
+                    {
+                        dictionaryData.AddObject(entry.Key.ToString(), ObjectToGSData(entry.Value));
+                    }
+                }
+                else
+                {
+                    // return the error //
+                    Debug.LogError("GS-Serializer|  Cannot Parse Object ["+entry.GetType().ToString()+"] As Key-Value. Key Must Be A String... \n Contact GameSparks if this functionality is required...");
+                    return null;
+                }
+            }
+            return dictionaryData;
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Converts primitives to GameSparks JSON data in a form that can be parsed back from the server response.
+    /// </summary>
+    /// <param name="gsData">GSData</param>
+    /// <param name="obj">Object, must be string, int, float, double, bool</param>
+    public static void PrimitiveToGSData(ref GSRequestData gsData, object obj)
+    {
+        if(obj.GetType().IsSerializable && obj.GetType().IsPrimitive || obj.GetType().IsValueType || obj.GetType() == typeof(string))
+        {
+            if(obj.GetType() == typeof(int))
+            {
+                gsData.AddNumber("value", Convert.ToInt32(obj));
+            }
+            else if(obj.GetType() == typeof(long))
+            {
+                gsData.AddNumber("value", Convert.ToInt64(obj));
+            }
+            else if(obj.GetType() == typeof(float))
+            {
+                gsData.AddNumber("value", float.Parse(obj.ToString()));
+            }
+            else if(obj.GetType() == typeof(double))
+            {
+                gsData.AddNumber("value", Convert.ToDouble(obj));
+            }
+            else if(obj.GetType() == typeof(string))
+            {
+                gsData.AddString("value", obj.ToString());
+            }
+            else if(obj.GetType() == typeof(bool))
+            {
+                gsData.AddBoolean("value", bool.Parse(obj.ToString()));
+            }
+        }
+        else
+        {
+            Debug.LogError("GS-Serializer|  Object Is Not Primitive...\n Contact GameSparks If This Is Required...");
+        }
+    }
+
+    /// <summary>
+    /// This method takes an object and parses it to JSON using the GSDataRequest Class.
+    /// This method uses reflection to make sure that all fields of the object are valid and serializable.
+    /// v1.0
+    /// Can serialise the following..
+    /// bool, int, long, float, double, string, string
+    /// Any list or array of the above type.
+    /// Any class containing the above types, including inherited classes.
+    /// Dictionary<string, object> containing any of the above. 
+    /// </summary>
+    /// <returns>GSDataRequest, a JSON wrapper class used to send JSON data from C# to GameSparks</returns>
+    /// <param name="obj">Object.</param>
+    public static GSRequestData ObjectToGSData(object obj)
+    {
+
+
+        GSRequestData gsData = new GSRequestData();
+        // the key part of this serializer is the inclusion of the object-type in the JSON data //
+        // this allows each object being parsed to JSON to have a reference back to the type is was cast from so it can be cast back //
+        // to the original class or data-type //
+        gsData.AddString("type", obj.GetType().ToString());
+        // we need to first check for primitives such as float, int, string, etc, as it is possible to pass primitives in as objects //
+        // , the dictionary for example. We just check if the object is primitive, and in this case we store the primitive with the //
+        // key 'value', which we will use later //
+        if(obj.GetType().IsSerializable && obj.GetType().IsPrimitive || obj.GetType().IsValueType || obj.GetType() == typeof(string))
+        {
+            PrimitiveToGSData(ref gsData, obj);
+        }
+        else
+        {
+            // if the object is not primitive, then we go through all the fields of that object type //
+            // what we do here is check the field is serializable, and if the field related to the object is not null //
+            // if it passes checks, then we add a new field to the GSDataRequest representing the field name and the field-data //
+            foreach(var field in obj.GetType().GetFields())
+            {
+                // check if the field is serializable and is not null //
+                if(!field.IsNotSerialized && field.GetValue(obj) != null)
+                {
+                    // check if the field is a dictionary //
+                    if(field.FieldType.IsGenericType && field.FieldType.GetGenericTypeDefinition() == typeof(Dictionary<,>))
+                    {
+                        GSData dictionary = DictionaryToGSData(field.GetValue(obj) as IDictionary);
+                        if(dictionary != null) // make sure the dictionary was returned //
+                        {
+                            gsData.AddObject(field.Name, dictionary);
+                        }
+                    }
+                    else if (field.FieldType.IsGenericType && field.FieldType.GetGenericTypeDefinition() == typeof(List<>) && typeof(IList).IsAssignableFrom(field.FieldType))
+                    {
+                        IListToGSDataList(ref gsData, field.Name, field.GetValue(obj) as IList);
+                    }
+                    // The following object-types are suitable for direct serialisation to GSData using GSDataRequest //
+                    else if(field.GetValue(obj).GetType() == typeof(bool))
+                    {
+                        gsData.AddBoolean(field.Name, bool.Parse(field.GetValue(obj).ToString()));
+                    }
+                    else if(field.GetValue(obj).GetType() == typeof(int))
+                    {
+                        gsData.AddNumber(field.Name, (int)Convert.ToInt32(field.GetValue(obj)));
+                    }
+                    else if(field.GetValue(obj).GetType() == typeof(float) || field.GetValue(obj).GetType() == typeof(double))
+                    {
+                        gsData.AddNumber(field.Name, Double.Parse(field.GetValue(obj).ToString()));
+                    }
+                    else if(field.GetValue(obj).GetType() == typeof(string))
+                    {
+                        gsData.AddString(field.Name, field.GetValue(obj).ToString());
+                    }
+                    else if(field.GetValue(obj).GetType() == typeof(List<string>) || field.GetValue(obj).GetType() == typeof(string[]))
+                    {
+                        gsData.AddStringList(field.Name,  (field.GetValue(obj).GetType() == typeof(List<string>)) ? field.GetValue(obj) as List<string> : new List<string>(field.GetValue(obj) as string[]));
+                    }
+                    else if(field.GetValue(obj).GetType() == typeof(List<int>) || field.GetValue(obj).GetType() == typeof(int[]))
+                    {
+                        gsData.AddNumberList(field.Name,  (field.GetValue(obj).GetType() == typeof(List<int>)) ? field.GetValue(obj) as List<int> : new List<int>(field.GetValue(obj) as int[]));
+                    }
+                    else if(field.GetValue(obj).GetType() == typeof(List<float>) || field.GetValue(obj).GetType() == typeof(float[]))
+                    {
+                        gsData.AddNumberList(field.Name,  (field.GetValue(obj).GetType() == typeof(List<float>)) ? field.GetValue(obj) as List<float> : new List<float>(field.GetValue(obj) as float[]));
+                    }
+                    else if(field.GetValue(obj).GetType() == typeof(DateTime))
+                    {
+                        gsData.AddDate(field.Name, (DateTime)field.GetValue(obj));
+                    }
+                    else if(field.FieldType.IsArray)
+                    {
+                        GSRequestData newData = new GSRequestData();
+                        IListToGSDataList(ref newData, field.Name, field.GetValue(obj) as IList);
+                        gsData.AddObject(field.Name, newData);
+                    }
+                    // value-types are not classes (struct or enum) so we will specify this for serializing classes //
+                    else if(!field.FieldType.IsValueType)
+                    {
+                        gsData.AddObject(field.Name, ObjectToGSData(field.GetValue(obj)));
+                    }
+                    else 
+                    {
+                        Debug.LogError("GS-Serializer|  Cannot Parse Object ["+field.FieldType+"]... \n Contact GameSparks if this functionality is required...");
+                    }
+                }
+            }
+        }
+        return gsData;
+    }
+
+    public static void IListToGSDataList(ref GSRequestData gsData, string fieldName, IList list)
+    {
+        if(list.GetType() == typeof(List<string>) || list.GetType() == typeof(string[]))
+        {
+            gsData.AddStringList(fieldName,  (list.GetType() == typeof(List<string>)) ? list as List<string> : new List<string>(list as string[]));
+        }
+        else if(list.GetType() == typeof(List<int>) || list.GetType() == typeof(int[]))
+        {
+            gsData.AddNumberList(fieldName,  (list.GetType() == typeof(List<int>)) ? list as List<int> : new List<int>(list as int[]));
+        }
+        else if(list.GetType() == typeof(List<float>) || list.GetType() == typeof(float[]))
+        {
+            gsData.AddNumberList(fieldName,  (list.GetType() == typeof(List<float>)) ? list as List<float> : new List<float>(list as float[]));
+        }
+        else
+        {
+            List<GSData> gsDataList = new List<GSData>();
+            for(int i = 0; i < list.Count; i++)
+            {
+                gsDataList.Add(ObjectToGSData(list[i]));
+            }
+            gsData.AddObjectList(fieldName, gsDataList);
+        }
+    }
+
+}
+
+public class AssetBundleDetails
+{
+    public string asset_bundle_id;
+    public string created_by;
+    public DateTime last_modified = DateTime.MinValue;
+    public int size;
+    public string url;
+
+
+    public AssetBundleDetails(GSData gsData)
+    {
+        asset_bundle_id = gsData.GetString("asset_bundle_id");
+        created_by = gsData.GetString("created_by");
+
+        if(gsData.GetNumber("last_modified").HasValue)
+        {
+            last_modified = UnixTimeStampToDateTime(gsData.GetNumber("last_modified").Value);
+        }
+        else if(gsData.GetGSData("last_modified").GetString("$date") != null)
+        {
+            last_modified = DateTime.Parse(gsData.GetGSData("last_modified").GetString("$date"));
+        }
+
+        size = (int)gsData.GetNumber("size").Value;
+        url = gsData.GetString("url");
+    }
+
+    private DateTime UnixTimeStampToDateTime(long unixDate)
+    {
+        DateTime start = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        DateTime date = start.AddMilliseconds(unixDate).ToLocalTime();
+        return date;
+    }
+
+
+    public void Print()
+    {
+        Debug.Log("Bundle ID:"+asset_bundle_id+", Created By: "+created_by+", Last Modified:"+last_modified.ToString()+", Size:"+size);
+        Debug.LogWarning("URL: "+url);
+    }
+}
+
+public class GameSparksDownloadablesManager : MonoBehaviour
+{
+
+    /// <summary>
+    /// Submits the additional data.
+    /// </summary>
+    /// <returns>The additional data.</returns>
+    /// <param name="asset_bundle_id">Asset bundle identifier.</param>
+    /// <param name="created_by">Created by.</param>
+    /// <param name="OnAssetBundleSubmitted">On asset bundle submitted.</param>
+    /// <param name="OnAssetBundleFailed">On asset bundle failed.</param>
+    public static IEnumerator SubmitAdditionalData(string asset_bundle_id, string created_by, OnAssetBundleSubmitted OnAssetBundleSubmitted, OnAssetBundleFailed OnAssetBundleFailed)
+    {
+        WWW checkNameRequest = new WWW("https://preview.gamesparks.net/callback/E300018ZDdAx/addAssetBundle/Y4MhlMUWR8GnZw0a5Nhffj9LSGTDg4t3?asset_bundle_id="+asset_bundle_id+"&created_by="+created_by);
+        yield return checkNameRequest;
+        // check that the response has data, otherwise the request failed //
+        if(OnAssetBundleFailed != null && (checkNameRequest.text == null || checkNameRequest.text == string.Empty))
+        {
+            OnAssetBundleFailed(new GameSparksError(GameSparksErrorMessage.submit_asset_bundle_failed));
+        }
+        else 
+        {
+            // once we have the response we can parse it to an object from the JSON using gsdata //
+            GSRequestData respData = new GSRequestData(checkNameRequest.text);
+            if(OnAssetBundleFailed != null && respData.GetGSData("errors") != null) // check if we have an error
+            {
+                OnAssetBundleFailed(new GameSparksError(GameSparksManager.ProcessGSErrors(respData.GetGSData("errors"))));
+            }
+            else if(OnAssetBundleSubmitted != null && respData.GetGSData("resp") != null)
+            {
+                OnAssetBundleSubmitted(new AssetBundleDetails(respData.GetGSData("resp")));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Receives asset bundle details
+    /// </summary>
+    public delegate void OnAssetBundleSubmitted(AssetBundleDetails assetBundleDetails);
+
+    /// <summary>
+    /// Receives gamesparks error object
+    /// </summary>
+    public delegate void OnAssetBundleFailed(GameSparksError error);
+
+
+    /// <summary>
+    /// Submits an assetbundlke to the server.
+    /// Upon response from the server, we send a post of a callback where additional details are logged for this asset bundle
+    /// </summary>
+    /// <param name="asset_bundle_id">Asset bundle identifier.</param>
+    /// <param name="created_by">Created by.</param>
+    /// <param name="admin_username">Admin username.</param>
+    /// <param name="admin_password">Admin password.</param>
+    /// <param name="file_path">File path.</param>
+    /// <param name="OnAssetBundleSubmitted">callback, Receives AssetBundleDetails</param>
+    /// <param name="OnAssetBundleFailed">callback. Receives GameSparksError object: enum</param>
+    public static void SubmitAssetBundle(string asset_bundle_id, string created_by, string admin_username, string admin_password, string file_path, OnAssetBundleSubmitted OnAssetBundleSubmitted, OnAssetBundleFailed OnAssetBundleFailed)
+    {
+        Debug.Log("GSM| Submitting Asset Bundle...");
+        // this will submit the data to the server as a downloadable. The asset bundle id ill become the shortcode //
+        string response  = GameSparksRestApi.setDownloadable(GameSparksSettings.ApiKey, admin_username, admin_password, asset_bundle_id, file_path);
+        GSRequestData submissionRespData = new GSRequestData(response); // parse the response into JSON so we can check errors better
+        Debug.LogWarning("Asset Bundle Submission Response: "+submissionRespData.JSON);
+        if(submissionRespData.GetGSData("error") == null) // if there are no errors, then we send off a request to the callback to create a log //
+        {
+            // we need an object to send the coroutine off, to here i used the GameSparksManager singleton //
+            GameSparksManager.Instance().StartCoroutine(SubmitAdditionalData(asset_bundle_id, created_by, OnAssetBundleSubmitted, OnAssetBundleFailed));
+        }
+        else if(OnAssetBundleFailed != null)
+        {
+            OnAssetBundleFailed(new GameSparksError(GameSparksManager.ProcessGSErrors(submissionRespData)));
+        }
+    }
+
+
 }

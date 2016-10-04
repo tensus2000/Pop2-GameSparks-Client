@@ -9256,6 +9256,11 @@
             A time sensitive URL to a piece of content
             </summary>
         </member>
+        <member name="P:GameSparks.Api.Responses.JoinChallengeResponse.Joined">
+            <summary>
+            Whether the player successfully joined the challenge
+            </summary>
+        </member>
         <member name="P:GameSparks.Api.Responses.JoinPendingMatchResponse.PendingMatch">
             <summary>
             A JSON object containing the new pending match

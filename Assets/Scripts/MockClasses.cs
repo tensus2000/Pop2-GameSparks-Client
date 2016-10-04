@@ -107,6 +107,8 @@ using System.Linq.Expressions;
 //                }
 //            });
 //}
+using System.Net;
+using System.IO;
 
 
 public class Scene
@@ -210,8 +212,8 @@ public class AdornmentPrototype
 
     public AdornmentPrototype(string type, string url)
     {
-        this.name = name;
         this.url = url;
+        this.type = type;
     }
 
     public AdornmentPrototype()
@@ -282,6 +284,12 @@ public class Item
 {
     int item_id;
     string name, icon, representation, isSpecial, equipped;
+
+
+    public Item(GSData gsData)
+    {
+
+    }
 
     public Item(int item_id, string name, string icon, string equipped, string isSpecial, string representation)
     {
@@ -471,26 +479,7 @@ public class Character
 }
 
 
-public class InboxMessage
-{
-    string messageId, senderName, senderID, header, body;
-    GSData payload;
 
-    public InboxMessage(string _messageId, string _senderName, string _senderID, string _header, string _body, GSData _payload)
-    {
-        this.messageId = _messageId;
-        this.senderName = _senderName;
-        this.senderID = _senderID;
-        this.header = _header;
-        this.body = _body;
-        this.payload = _payload;
-    }
-
-    public void Print()
-    {
-        Debug.Log("Message ID: " + messageId + ", Header: " + header + ", Body: " + body + ", Sender ID: " + senderID + ", Sender Name: " + senderName + ", Payload:" + payload.JSON);
-    }
-}
 
 [Serializable()]
 public class QuestData
@@ -642,9 +631,16 @@ public class QuestStep
 }
 
 
-public class ThingA
+public class ClassA
 {
+    public string className = "ClassA";
+    public ClassB thisClassB = new ClassB();
     public List<string> myStringyList;
+
+    public ClassA()
+    {
+        myStringyList = new List<string>(){ "1",  "2", "3" };
+    }
 
     public override string ToString(){
         if(myStringyList != null)
@@ -655,11 +651,21 @@ public class ThingA
     }
 }
 
-public class ThingB
+public class ClassB
 {
+    public string className = "ClassB";
+    public ClassC thisClassC = new ClassC();
+
     public bool isBool;
     public string isString;
     public int isInt;
+
+    public ClassB()
+    {
+        isInt = 100;
+        isBool = true;
+        isString = "Hello World!";
+    }
 
     public override string ToString(){
         Debug.Log("isBool:"+isBool+", isString:"+isString+", isInt:"+isInt);
@@ -667,9 +673,17 @@ public class ThingB
     }
 }
 
-public class ThingC
+public class ClassC
 {
+    public string className = "ClassC";
+    public ClassD thisClassD = new ClassD();
+
     public string[] myStringyArray;
+
+    public ClassC()
+    {
+        myStringyArray = new string[]{ "1",  "2", "3", "4" };
+    }
 
     public override string ToString(){
         if(myStringyArray != null)
@@ -681,9 +695,16 @@ public class ThingC
 }
     
 
-public class ThingE
+public class ClassD
 {
+    public string className = "ClassD";
+    public ClassE thisClassE = new ClassE();
     public int[]  lotsOfInts;
+
+    public ClassD()
+    {
+        lotsOfInts = new int[]{ 1,2 ,3 ,4 ,5 ,6 ,7 , 8, 9 };
+    }
 
     public override string ToString(){
         if(lotsOfInts != null)
@@ -694,17 +715,24 @@ public class ThingE
     }
 }
 
-public class ThingF
+public class ClassE
 {
+    public string className = "ClassE";
+//    public ClassE thisClassE = new ClassE();
     public float myFloat = 1.040404040f;
-    public float[]  lotsOfFloats;
+    public float[] lotsOfFloats;
+
+    public ClassE()
+    {
+        myFloat = 0.123f; 
+        lotsOfFloats = new float[]{ 1f, 4.5f, 1.234f };
+    }
 
     public override string ToString(){
         if(lotsOfFloats != null)
         {
             Debug.LogError("lotsOfFloats -> "+lotsOfFloats.Length);
         }
-        Debug.LogError("OVERRIDE");
         return null;
     }
 }
@@ -714,11 +742,25 @@ public class SceneState
     public int island_id;
     public int scene_id;
     public string character_id;
+
+//    public ClassA thisClassA = new ClassA();
+//    public ClassB thisClassB = new ClassB();
+//    public ClassC thisClassC = new ClassC();
+//    public ClassE thisClassD = new ClassE();
+
     public Dictionary<string, object> states;
+//
+    public List<ClassA> listOfA = new List<ClassA>();
+
+  
 
     public void Print()
     {
         Debug.Log("Char_id:"+character_id+", Island_id:"+island_id+", Scene_id:"+scene_id);
+        if(states != null)
+        {
+            Debug.Log("States:"+states.Count);
+        }
         if(states != null)
         {
             foreach(var elem in states)
@@ -726,24 +768,124 @@ public class SceneState
                 Debug.LogWarning(elem.Value);
             }
         }
+//        thisClassA.ToString();
+//        thisClassB.ToString();
+//        thisClassC.ToString();
+//        thisClassD.ToString();
+//
+//        Debug.Log("List Of As':"+listOfA.Count);
     }
-
-    public SceneState(string character_id, int island_id, int scene_id)
-    {
-        this.character_id = character_id;
-        this.island_id =  island_id;
-        this.scene_id = scene_id;
-    }
-
+//
+//    public SceneState(string character_id, int island_id, int scene_id)
+//    {
+//        this.character_id = character_id;
+//        this.island_id =  island_id;
+//        this.scene_id = scene_id;
+//    }
+//
     public SceneState()
     {
     }
-
+//
     public SceneState(string character_id, int island_id, int scene_id, Dictionary<string, object> states)
     {
         this.character_id = character_id;
         this.island_id = island_id;
         this.scene_id = scene_id;
         this.states = states;
+
+        for(var i = 0; i < 10; i++)
+        {
+//            listOfA.Add(new ClassA());
+        }
     }
 }
+
+
+[System.Serializable]
+public class TestElement // : IGameStateElement
+{
+    public TestElement3[] test3Array = new TestElement3[]{ new TestElement3(), new TestElement3() };
+
+    public TestElement()
+    {
+    }    
+
+//    public int index = 2;
+//    public string message = "Hello";
+//    private float offset = 0.3f;
+//
+//    [System.NonSerialized]
+//    public bool isLightOn = false;
+//    public List<TestElement2> test2 = new List<TestElement2>(new TestElement2[]{ new TestElement2(), new TestElement2() });    
+//
+//    public object StateData
+//    {
+//        get
+//        {
+//            return this;
+//        }
+//        set
+//        {
+//            TestElement testElement = (TestElement)value;
+//            index = testElement.index;
+//            message = testElement.message;
+//        }
+//    }
+
+    public override string ToString()
+    {
+        if(test3Array != null)
+        {
+            for(int i = 0; i < test3Array.Length; i++)
+            {
+                Debug.LogError(" -> "+test3Array[i].ToString());
+            }
+        }
+        else
+        {
+            Debug.LogError("No Array");
+        }
+        return null;
+    }
+}
+
+[System.Serializable]
+public class TestElement2
+{
+    public int width = 3;
+    public int heigth = 4;
+    public TestElement3[] test3Array = new TestElement3[]{ new TestElement3(), new TestElement3() };
+
+    public TestElement2()
+    {
+    }
+
+//    public void Print()
+//    {
+//        for(int i = 0; i < test3Array.Length; i++)
+//        {
+//            test3Array[i].Print();
+//        }
+//    }
+}
+
+[System.Serializable]
+public class TestElement3
+{
+    public int x = 5;
+    public int y = 6;
+
+    public TestElement3()
+    {
+    }
+
+    public override string ToString()
+    {
+        Debug.LogWarning("x, "+x+", y,"+y);
+        return null;
+    }
+}
+
+//using GameSparks.Editor;
+
