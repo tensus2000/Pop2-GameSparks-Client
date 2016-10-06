@@ -160,6 +160,14 @@ public class GameSparksManager : MonoBehaviour
                 OnServerVersionMessage(new ServerVersionResponse(message.Data.GetGSData("data")));
             }
         };
+
+        GameSparks.Api.Messages.CurrencyBalanceMessage.Listener += (message) =>
+        {
+            if(OnCurrencyBalanceMessage != null)
+            {
+                OnCurrencyBalanceMessage(new CurrencyBalance(message.Data));
+            }
+        };
     }
 
     #region Callbacks For Socket-Messages
@@ -206,6 +214,17 @@ public class GameSparksManager : MonoBehaviour
     /// It requires construction of the ServerVersionResponse .
     /// </summary>
     public delegate void ServerVersionMessageEvent(ServerVersionResponse serverMessage);
+
+    /// <summary>
+    /// This event is raised when gamesparks manager receives a script message marked as a currency message.
+    /// </summary>
+    public event CurrencyBalanceMessageEvent OnCurrencyBalanceMessage;
+
+    /// <summary>
+    /// recieves a currency balance object
+    /// </summary>
+    public delegate void CurrencyBalanceMessageEvent(CurrencyBalance balance);
+
 
     #endregion
 
@@ -1520,11 +1539,35 @@ public class GameSparksManager : MonoBehaviour
 
     #region  Currency
 
-    /// <summary>
-    /// Receives int, the number of coins converted from moonstones, and the current player balance
-    /// </summary>
-    public delegate void onConvertToCoins(int coinsConverted, CurrencyBalance balance);
 
+    /// <summary>
+    /// Returns the player balance as a CurrencyBalance object
+    /// </summary>
+    /// <param name="onCurrencyRequestSuccess">receives the current balance for the player</param>
+    /// <param name="onRequestFailed">On request failed. callback, Receives GameSparksError, contains enum & string errorString</param>
+    public void GetBalance(onCurrencyRequestSuccess onCurrencyRequestSuccess, onRequestFailed onRequestFailed)
+    {
+        Debug.Log("GSM| Fetching Balance...");
+        new GameSparks.Api.Requests.LogEventRequest().SetEventKey("getBalance")
+            .Send((response) => 
+            {
+                if (!response.HasErrors)
+                {
+                    if(onCurrencyRequestSuccess != null)
+                    {
+                        onCurrencyRequestSuccess(new CurrencyBalance(response.ScriptData.GetGSData("@getBalance")));
+                    }
+                }
+                else
+                {
+                    if(onRequestFailed != null)
+                    {
+                        onRequestFailed(new GameSparksError(ProcessGSErrors(response.Errors)));
+                    }
+                }
+            });
+    }
+        
     public delegate void onCurrencyRequestSuccess(CurrencyBalance balance);
 
     /// <summary>
@@ -1533,49 +1576,18 @@ public class GameSparksManager : MonoBehaviour
     /// <param name="n_moonstones">No. of moonstones.</param>
     /// <param name="onConvertToCoins">receives the current balance for the player and the number of coins.</param>
     /// <param name="onRequestFailed">On request failed. callback, Receives GameSparksError, contains enum & string errorString</param>
-    public void ConvertToCoins(int n_moonstones, onConvertToCoins onConvertToCoins, onRequestFailed onRequestFailed)
+    public void ConvertToCoins(int n_moonstones, onCurrencyRequestSuccess onCurrencyRequestSuccess, onRequestFailed onRequestFailed)
     {
         Debug.Log("GSM| Converting Moonstones ["+n_moonstones+"] to Coins...");
         new GameSparks.Api.Requests.LogEventRequest().SetEventKey("convertToCoins")
-            .SetEventAttribute("n_moonstones", n_moonstones)
-            .Send((response) => 
-            {
-                if (!response.HasErrors)
-                {
-                    if(onConvertToCoins != null)
-                    {
-                        onConvertToCoins((int)response.ScriptData.GetNumber("coins_converted").Value, new CurrencyBalance(response.ScriptData.GetGSData("@convertToCoins")));
-                    }
-                }
-                else
-                {
-                    if(onRequestFailed != null)
-                    {
-                        onRequestFailed(new GameSparksError(ProcessGSErrors(response.Errors)));
-                    }
-                }
-            });
-    }
-
-    /// <summary>
-    /// Adds the coins for completing a given event.
-    /// </summary>
-    /// <param name="eventName">Event name.</param>
-    /// <param name="onCurrencyRequestSuccess">receives the current balance for the player</param>
-    /// <param name="onRequestFailed">On request failed. callback, Receives GameSparksError, contains enum & string errorString</param>
-    public void AddCoinsForCompletedEvent(string eventName, onCurrencyRequestSuccess onCurrencyRequestSuccess, onRequestFailed onRequestFailed)
-    {
-        Debug.Log("GSM| Adding Coins For Event Completion...");
-        new GameSparks.Api.Requests.LogEventRequest().SetEventKey("addCoinsForCompletedEvent")
-            .SetEventAttribute("eventName", eventName)
-            .SetDurable(true)
+            .SetEventAttribute("moonstones", n_moonstones)
             .Send((response) => 
             {
                 if (!response.HasErrors)
                 {
                     if(onCurrencyRequestSuccess != null)
                     {
-                        onCurrencyRequestSuccess(new CurrencyBalance(response.ScriptData.GetGSData("@addCoinsForCompletedEvent")));
+                        onCurrencyRequestSuccess(new CurrencyBalance(response.ScriptData.GetGSData("@convertToCoins")));
                     }
                 }
                 else
@@ -1587,6 +1599,7 @@ public class GameSparksManager : MonoBehaviour
                 }
             });
     }
+        
 
     /// <summary>
     /// Purchases an item with the given ID if the user has enough credits
@@ -1594,17 +1607,17 @@ public class GameSparksManager : MonoBehaviour
     /// <param name="itemId">Item ID.</param>
     /// <param name="onCurrencyRequestSuccess">receives the current balance for the player</param>
     /// <param name="onRequestFailed">On request failed. callback, Receives GameSparksError, contains enum & string errorString</param>
-    public void PurchaseItem(string character_id, string itemId, onCurrencyRequestSuccess onCurrencyRequestSuccess, onRequestFailed onRequestFailed)
+    public void PurchaseItem(string itemId, onCurrencyRequestSuccess onCurrencyRequestSuccess, onRequestFailed onRequestFailed)
     {
         Debug.Log("GSM| Purchasing Item ["+itemId+"]...");
         new GameSparks.Api.Requests.LogEventRequest().SetEventKey("purchaseItem")
-            .SetEventAttribute("item_id", itemId)
-            .SetEventAttribute("character_id", character_id)
+            .SetEventAttribute("shortCode", itemId)
             .SetDurable(true)
             .Send((response) => 
             {
                 if (!response.HasErrors)
                 {
+                        Debug.LogWarning(response.ScriptData.JSON);
                     if(onCurrencyRequestSuccess != null)
                     {
                         onCurrencyRequestSuccess(new CurrencyBalance(response.ScriptData.GetGSData("@purchaseItem")));
@@ -1623,7 +1636,7 @@ public class GameSparksManager : MonoBehaviour
     /// <summary>
     /// receives the current server time and an array of items
     /// </summary>
-    public delegate void onGetPurchasableItems(DateTime serverTime, Item[] items);
+    public delegate void onGetPurchasableItems(VirtualGood[] items);
 
     /// <summary>
     /// Gets an array of purchasable items.
@@ -1631,23 +1644,91 @@ public class GameSparksManager : MonoBehaviour
     /// <param name="cacheTime">Cache time.</param>
     /// <param name="onGetPurchasableItems">Oreceives the current server time and an array of purchasable items.</param>
     /// <param name="onRequestFailed">On request failed. callback, Receives GameSparksError, contains enum & string errorString</param>
-    public void GetPurchasableItems(DateTime cacheTime, onGetPurchasableItems onGetPurchasableItems, onRequestFailed onRequestFailed)
+    public void GetPurchasableItems(string[] tagList, int offset, int limit, onGetPurchasableItems onGetPurchasableItems, onRequestFailed onRequestFailed)
     {
         Debug.Log("GSM| Fetching Purchasable Items...");
+        GSRequestData tags = new GSRequestData();
+        tags.AddStringList("tags", new List<string>(tagList));
         new GameSparks.Api.Requests.LogEventRequest().SetEventKey("getPurchasableItems")
-            .SetEventAttribute("cache_time", ToUnixTimestamp(cacheTime))
+            .SetEventAttribute("tags", tags)
+            .SetEventAttribute("offset", offset)
+            .SetEventAttribute("limit", limit)
             .Send((response) => 
             {
                 if (!response.HasErrors)
                 {
                     if(onGetPurchasableItems != null)
                     {
-                        List<Item> itemList = new List<Item>();
+                        List<VirtualGood> itemList = new List<VirtualGood>();
                         foreach(var itemDetails in response.ScriptData.GetGSDataList("@getPurchasableItems"))
                         {
-                            itemList.Add(new Item(itemDetails));
+                            itemList.Add(new VirtualGood(itemDetails));
                         }
-                        onGetPurchasableItems(response.ScriptData.GetDate("server_time").Value, itemList.ToArray());
+                        onGetPurchasableItems(itemList.ToArray());
+                    }
+                }
+                else
+                {
+                    if(onRequestFailed != null)
+                    {
+                        onRequestFailed(new GameSparksError(ProcessGSErrors(response.Errors)));
+                    }
+                }
+            });
+    }
+
+    public void GetPurchasableItems(int offset, int limit, onGetPurchasableItems onGetPurchasableItems, onRequestFailed onRequestFailed)
+    {
+        Debug.Log("GSM| Fetching Purchasable Items...");
+        GSRequestData tags = new GSRequestData();
+        tags.AddStringList("tags",  null);
+        new GameSparks.Api.Requests.LogEventRequest().SetEventKey("getPurchasableItems")
+            .SetEventAttribute("tags", tags)
+            .SetEventAttribute("offset", offset)
+            .SetEventAttribute("limit", limit)
+            .Send((response) => 
+                {
+                    if (!response.HasErrors)
+                    {
+                        if(onGetPurchasableItems != null)
+                        {
+                            List<VirtualGood> itemList = new List<VirtualGood>();
+                            foreach(var itemDetails in response.ScriptData.GetGSDataList("@getPurchasableItems"))
+                            {
+                                itemList.Add(new VirtualGood(itemDetails));
+                            }
+                            onGetPurchasableItems(itemList.ToArray());
+                        }
+                    }
+                    else
+                    {
+                        if(onRequestFailed != null)
+                        {
+                            onRequestFailed(new GameSparksError(ProcessGSErrors(response.Errors)));
+                        }
+                    }
+                });
+    }
+
+
+
+
+    #endregion
+
+    #region Achievments
+
+    public void AwardAchievement(string event_name, onCurrencyRequestSuccess onCurrencyRequestSuccess, onRequestFailed onRequestFailed)
+    {
+        Debug.Log("GSM| Fetching Daily Bonus List...");
+        new GameSparks.Api.Requests.LogEventRequest().SetEventKey("awardAchievement")
+            .SetEventAttribute("ach_name", event_name)
+            .Send((response) => 
+            {
+                if (!response.HasErrors)
+                {
+                    if(onCurrencyRequestSuccess != null)
+                    {
+                        onCurrencyRequestSuccess(new CurrencyBalance(response.ScriptData.GetGSData("@awardAchievement")));
                     }
                 }
                 else
@@ -1703,7 +1784,7 @@ public class GameSparksManager : MonoBehaviour
     /// <summary>
     /// Receives a DailyBonus object along with the current user's balance.
     /// </summary>
-    public delegate void onChooseDailyBonus(DailyBonusList dailyBonusList, CurrencyBalance balance);
+    public delegate void onChooseDailyBonus(BonusPrize bonusPrize, CurrencyBalance balance);
 
     /// <summary>
     /// Chooses the daily bonus.
@@ -1722,10 +1803,9 @@ public class GameSparksManager : MonoBehaviour
             {
                 if (!response.HasErrors)
                 {
-                    Debug.LogWarning(response.ScriptData.JSON);
                     if(onChooseDailyBonus != null)
                     {
-                        onChooseDailyBonus(new DailyBonusList(response.ScriptData), new CurrencyBalance(response.ScriptData.GetGSData("@chooseDailyBonus")));
+                        onChooseDailyBonus(new BonusPrize(response.ScriptData.GetGSData("prize")), new CurrencyBalance(response.ScriptData.GetGSData("@chooseDailyBonus")));
                     }
                 }
                 else
@@ -2845,6 +2925,13 @@ public class GameSparksManager : MonoBehaviour
         {
             return (GameSparksErrorMessage)Enum.Parse(typeof(GameSparksErrorMessage), error.GetString("@getPurchasableItems"));
         }
+        // ACHIEVEMENTS //
+        else if (error.GetString("@awardAchievement") != null)
+        {
+            return (GameSparksErrorMessage)Enum.Parse(typeof(GameSparksErrorMessage), error.GetString("@awardAchievement"));
+        }
+
+
         // DAILY BONUS //
         else if (error.GetString("@getDailyBonus") != null)
         {
@@ -3001,6 +3088,7 @@ namespace GameSparks.Api.Messages {
             }
         }
     }
+
     public class ServerVersionUpdateMessage : ScriptMessage {
 
         public new static Action<ServerVersionUpdateMessage> Listener;
@@ -3028,12 +3116,35 @@ namespace GameSparks.Api.Messages {
         }
     }
 
+
+    public class CurrencyBalanceMessage : ScriptMessage {
+
+        public new static Action<CurrencyBalanceMessage> Listener;
+
+        public CurrencyBalanceMessage(GSData data) : base(data){}
+
+        private static CurrencyBalanceMessage Create(GSData data)
+        {
+            CurrencyBalanceMessage message = new CurrencyBalanceMessage (data);
+            return message;
+        }
+
+        static CurrencyBalanceMessage()
+        {
+            handlers.Add (".ScriptMessage_currencyBalanceMessage", Create);
+
+        }
+
+        override public void NotifyListeners()
+        {
+            if (Listener != null)
+            {
+                Listener (this);
+            }
+        }
+    }
 }
-
-
-
-
-
+    
 public class GameSparksError
 {
     public GameSparksErrorMessage errorMessage;
@@ -3092,7 +3203,46 @@ public enum GameSparksErrorMessage
     invalid_request, // used when the request data is incorrect, i.e. checkusername()
     submit_asset_bundle_failed,
     invalid_bundle_code,
-    no_wheel_layout
+    no_wheel_layout,
+    insufficent_balance,
+    invalid_achievement_name,
+    item_exceeded_max_quantity,
+    too_soon_to_spin
+}
+
+public class VirtualGood
+{
+    public string description;
+    public int max_quantity;
+    public string name;
+    public string shortCode;
+    public int coinsCost, moonStoneCost;
+
+    public VirtualGood(GSData gsData)
+    {
+        if(gsData.GetNumber("currency1Cost").HasValue)
+        {
+            this.coinsCost = (int)gsData.GetNumber("currency1Cost").Value;
+        }
+        if(gsData.GetNumber("currency2Cost").HasValue)
+        {
+            this.moonStoneCost = (int)gsData.GetNumber("currency2Cost").Value;
+        }
+        if(gsData.GetNumber("maxQuantity").HasValue)
+        {
+            this.max_quantity = (int)gsData.GetNumber("maxQuantity").Value;
+        }
+        this.name = gsData.GetString("name");
+        this.description = gsData.GetString("description");
+        this.shortCode = gsData.GetString("shortCode");
+    }
+
+
+    public void Print()
+    {
+        Debug.Log("ShortCode:"+shortCode+", Desc:"+description+", Name:"+name);
+//        Debug.Log("Uses:"+max_quantity+", Coins:"+coinsCost+", Moons:"+moonStoneCost);
+    }
 }
 
 
@@ -3249,8 +3399,7 @@ public class InboxMessage
         Debug.Log("MetaData:"+metadata.JSON);
     }
 }
-
-
+    
 public class AuthResponse
 {
     public string[] characterIDs;
@@ -3273,8 +3422,6 @@ public class AuthResponse
         Debug.Log("Last Char:" + lastCharacterID + ", # Characters:" + characterIDs.Length + ", hasParentEmail:" + hasParentEmail + ", Gender:" + gender + ", Age:" + age);
     }
 }
-
-
 
 public class ParentEmailStatus
 {
@@ -3390,19 +3537,37 @@ public class CurrencyBalance
     public int moonstone_balance; // New moonstone balance
     public int coin_delta;     // Change in coin balance
     public int coin_balance; // New coin balance
+    public DateTime timestamp; // Server time that this balance was generated
+    public string notes;  // usually null, may contain additional info about the change.  Not used in MVP.
 
     public CurrencyBalance(GSData gsData)
     {
-        this.moonstone_delta = (int)gsData.GetNumber("moonstone_delta").Value;
+        if(gsData.GetNumber("moonstones_delta").HasValue)
+        {
+            this.moonstone_delta = (int)gsData.GetNumber("moonstones_delta").Value;
+        }
+        if(gsData.GetNumber("coins_delta").HasValue)
+        {
+            this.coin_delta = (int)gsData.GetNumber("coins_delta").Value;
+        }
+        if(gsData.GetString("notes") != null)
+        {
+            this.notes = gsData.GetString("notes");
+        }
+        if(gsData.GetNumber("timestamp").HasValue)
+        {
+            this.timestamp = GameSparksManager.UnixTimeStampToDateTime(gsData.GetNumber("timestamp").Value);
+        }
+
         this.moonstone_balance = (int)gsData.GetNumber("moonstone_balance").Value;
-        this.coin_delta = (int)gsData.GetNumber("coin_delta").Value;
         this.coin_balance = (int)gsData.GetNumber("coin_balance").Value;
     }
 
     public void Print()
     {
         Debug.Log("MoonStones:"+moonstone_balance+", Coins:"+coin_balance);
-        Debug.Log("MoonStone D:"+moonstone_delta+", Coin D:"+coin_balance);
+        Debug.Log("MoonStone D:"+moonstone_delta+", Coin D:"+coin_delta);
+        Debug.Log("Date:"+timestamp+", Notes:"+notes);
     }
 }
 
@@ -3482,6 +3647,50 @@ public enum BonusPrizeTypes
     bonus_moonstones, 
     bonus_item
 }
+
+
+public class AssetBundleDetails
+{
+    public string asset_bundle_id;
+    public string created_by;
+    public DateTime last_modified = DateTime.MinValue;
+    public int size;
+    public string url;
+
+
+    public AssetBundleDetails(GSData gsData)
+    {
+        asset_bundle_id = gsData.GetString("asset_bundle_id");
+        created_by = gsData.GetString("created_by");
+
+        if(gsData.GetNumber("last_modified").HasValue)
+        {
+            last_modified = UnixTimeStampToDateTime(gsData.GetNumber("last_modified").Value);
+        }
+        else if(gsData.GetGSData("last_modified").GetString("$date") != null)
+        {
+            last_modified = DateTime.Parse(gsData.GetGSData("last_modified").GetString("$date"));
+        }
+
+        size = (int)gsData.GetNumber("size").Value;
+        url = gsData.GetString("url");
+    }
+
+    private DateTime UnixTimeStampToDateTime(long unixDate)
+    {
+        DateTime start = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        DateTime date = start.AddMilliseconds(unixDate).ToLocalTime();
+        return date;
+    }
+
+
+    public void Print()
+    {
+        Debug.Log("Bundle ID:"+asset_bundle_id+", Created By: "+created_by+", Last Modified:"+last_modified.ToString()+", Size:"+size);
+        Debug.LogWarning("URL: "+url);
+    }
+}
+
 
 /// <summary>
 /// Game sparks serialiser.
@@ -3927,47 +4136,7 @@ public class GameSparksSerialiser
 
 }
 
-public class AssetBundleDetails
-{
-    public string asset_bundle_id;
-    public string created_by;
-    public DateTime last_modified = DateTime.MinValue;
-    public int size;
-    public string url;
 
-
-    public AssetBundleDetails(GSData gsData)
-    {
-        asset_bundle_id = gsData.GetString("asset_bundle_id");
-        created_by = gsData.GetString("created_by");
-
-        if(gsData.GetNumber("last_modified").HasValue)
-        {
-            last_modified = UnixTimeStampToDateTime(gsData.GetNumber("last_modified").Value);
-        }
-        else if(gsData.GetGSData("last_modified").GetString("$date") != null)
-        {
-            last_modified = DateTime.Parse(gsData.GetGSData("last_modified").GetString("$date"));
-        }
-
-        size = (int)gsData.GetNumber("size").Value;
-        url = gsData.GetString("url");
-    }
-
-    private DateTime UnixTimeStampToDateTime(long unixDate)
-    {
-        DateTime start = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-        DateTime date = start.AddMilliseconds(unixDate).ToLocalTime();
-        return date;
-    }
-
-
-    public void Print()
-    {
-        Debug.Log("Bundle ID:"+asset_bundle_id+", Created By: "+created_by+", Last Modified:"+last_modified.ToString()+", Size:"+size);
-        Debug.LogWarning("URL: "+url);
-    }
-}
 
 public class GameSparksDownloadablesManager : MonoBehaviour
 {

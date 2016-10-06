@@ -21,10 +21,10 @@ public class UIManager : MonoBehaviour {
 	private Queue<string> myLogQueue = new Queue<string>();
 	private string myLog;
 
-	public GameObject daily_spin, currency, asset_bundle, items, scenes, scene_states, menu, playerDetails, inbox, islands, characters, outfits, non_auth, quests, test_user;
+	public GameObject achievements, daily_spin, currency, asset_bundle, items, scenes, scene_states, menu, playerDetails, inbox, islands, characters, outfits, non_auth, quests, test_user;
 
     public Button logoutBttn;
-    public Button goto_dailyspin_bttn, goto_currency_bttn, goto_asset_bundle_bttn, goto_testuser_bttn, goto_quests_bttn, goto_nonAuth_bttn, goto_scenes_bttn, goto_sceneState_bttn, goto_characters_bttn, goto_outfits_bttn, goto_islands_bttn, goto_chars_bttn, goto_items_bttn, goto_player_bttn, goTo_player_inbox, goTo_menu_bttn1, goTo_menu_bttn2, goTo_menu_bttn3, goTo_menu_bttn4, goTo_menu_bttn5, goTo_menu_bttn6, goTo_menu_bttn7, goTo_menu_bttn8, goTo_menu_bttn9, goTo_menu_bttn10, goTo_menu_bttn11, goTo_menu_bttn12,  goTo_menu_bttn13, goTo_menu_bttn14;
+    public Button goto_achievements_bttn, goto_dailyspin_bttn, goto_currency_bttn, goto_asset_bundle_bttn, goto_testuser_bttn, goto_quests_bttn, goto_nonAuth_bttn, goto_scenes_bttn, goto_sceneState_bttn, goto_characters_bttn, goto_outfits_bttn, goto_islands_bttn, goto_chars_bttn, goto_items_bttn, goto_player_bttn, goTo_player_inbox, goTo_menu_bttn1, goTo_menu_bttn2, goTo_menu_bttn3, goTo_menu_bttn4, goTo_menu_bttn5, goTo_menu_bttn6, goTo_menu_bttn7, goTo_menu_bttn8, goTo_menu_bttn9, goTo_menu_bttn10, goTo_menu_bttn11, goTo_menu_bttn12,  goTo_menu_bttn13, goTo_menu_bttn14, goTo_menu_bttn15;
 
 	public Button clearLog_bttn;
 	public InputField auth_password_input, auth_username_txt;
@@ -95,12 +95,15 @@ public class UIManager : MonoBehaviour {
     public InputField asset_bundle_id, created_by, admin_username, admin_password, file_path_1, get_asset_bundle_id;
     public GameObject uploadingPanel;
 
-    public InputField currency_character_id, no_moonstones_convert_field, currency_event_name_field, purchase_item_id;
-    public Button convert_to_coins_bttn, add_currency_event_complete_bttn, purchase_item_bttn;
+    public InputField currency_character_id, no_moonstones_convert_field, currency_event_name_field, purchase_item_id, get_purchasable_limit, get_purchasable_offset, get_purchasable_tag;
+    public Button convert_to_coins_bttn, add_currency_event_complete_bttn, purchase_item_bttn, get_balance_bttn, get_purchasable_items_bttn;
     public Text to_coins;
 
     public Button get_daily_spin_bttn, choose_daily_bonus_bttn;
     public InputField daily_spin_character_id, choose_daily_bonus_id;
+
+    public Button award_ach_bttn;
+    public InputField award_ach_name;
 
 	// Use this for initialization
 	void Start () {
@@ -129,6 +132,10 @@ public class UIManager : MonoBehaviour {
         // --> EXAMPLE, THIS WILL BE TRIGGERED IF THE SEVER WAS UPATED WHILE THE PLAYER IS CONNECTED //
         GameSparksManager.Instance ().OnServerVersionMessage += (serverVersion) => {
             serverVersion.Print();
+        };
+
+        GameSparksManager.Instance ().OnCurrencyBalanceMessage += (balance) => {
+            balance.Print();
         };
 
 		#region SET UI MANAGER
@@ -215,7 +222,12 @@ public class UIManager : MonoBehaviour {
             BringPanelForward (daily_spin);
         });
 
-        goTo_menu_bttn13.onClick = goTo_menu_bttn10.onClick = goTo_menu_bttn12.onClick = goTo_menu_bttn11.onClick = goTo_menu_bttn2.onClick = goTo_menu_bttn3.onClick = goTo_menu_bttn9.onClick = goTo_menu_bttn4.onClick = goTo_menu_bttn5.onClick = goTo_menu_bttn8.onClick = goTo_menu_bttn6.onClick = goTo_menu_bttn7.onClick = goTo_menu_bttn1.onClick;
+        goto_achievements_bttn.onClick.AddListener (() => {
+            Debug.Log ("Selected Achievements Options...");
+            BringPanelForward (achievements);
+        });
+
+        goTo_menu_bttn15.onClick = goTo_menu_bttn14.onClick = goTo_menu_bttn13.onClick = goTo_menu_bttn10.onClick = goTo_menu_bttn12.onClick = goTo_menu_bttn11.onClick = goTo_menu_bttn2.onClick = goTo_menu_bttn3.onClick = goTo_menu_bttn9.onClick = goTo_menu_bttn4.onClick = goTo_menu_bttn5.onClick = goTo_menu_bttn8.onClick = goTo_menu_bttn6.onClick = goTo_menu_bttn7.onClick = goTo_menu_bttn1.onClick;
 		#endregion
 
 		#region AUTHENTICATION & REGISTRATION EXAMPLES
@@ -936,36 +948,63 @@ public class UIManager : MonoBehaviour {
 
         convert_to_coins_bttn.onClick.AddListener(() => {
             Debug.Log("Clicked On Convert To Coins Button...");
-            GameSparksManager.Instance().ConvertToCoins(int.Parse(no_moonstones_convert_field.text), (_noCoins, _balance)=>{
-                to_coins.text = _noCoins.ToString();
-                Debug.Log(no_moonstones_convert_field.text+"<- MoonStones Converted To Coins ->"+_noCoins);
+            GameSparksManager.Instance().ConvertToCoins(int.Parse(no_moonstones_convert_field.text), (_balance)=>{
+                to_coins.text = _balance.coin_delta.ToString();
+                Debug.Log(_balance.coin_delta+"<- Coins Converted To MoonStones ->"+_balance.moonstone_delta);
                 _balance.Print();
             }, (_error) =>{
                 Debug.LogError(_error.errorMessage.ToString());
             });
         });
-
-        add_currency_event_complete_bttn.onClick.AddListener(() => {
-            Debug.Log("Clicked On Add Currency Complete Button...");
-            GameSparksManager.Instance().AddCoinsForCompletedEvent(currency_event_name_field.text, (_balance)=>{
-                _balance.Print();
-            }, (_error) =>{
-                Debug.LogError(_error.errorMessage.ToString());
-            });
-        });
+           
 
         purchase_item_bttn.onClick.AddListener(() => {
             Debug.Log("Clicked On Purchase Item ID Button...");
-            GameSparksManager.Instance().AddCoinsForCompletedEvent(purchase_item_id.text, (_balance)=>{
+            GameSparksManager.Instance().PurchaseItem(purchase_item_id.text, (_balance)=>{
                 _balance.Print();
             }, (_error) =>{
                 Debug.LogError(_error.errorMessage.ToString());
             });
         });
 
+        get_balance_bttn.onClick.AddListener(() => {
+            Debug.Log("Clicked On Get Balance Button...");
+            GameSparksManager.Instance().GetBalance((_balance)=>{
+                _balance.Print();
+            }, (_error) =>{
+                Debug.LogError(_error.errorMessage.ToString());
+            });
+        });
+
+        get_purchasable_items_bttn.onClick.AddListener(() => {
+            Debug.Log("Clicked On Get Purchasable Items Button...");
+            if(get_purchasable_tag.text == string.Empty)
+            {
+                GameSparksManager.Instance().GetPurchasableItems(int.Parse(get_purchasable_offset.text), int.Parse(get_purchasable_limit.text),  (_items)=>{
+                    for(int i = 0; i < _items.Length; i++)
+                    {
+                        _items[i].Print();
+                    }
+                }, (_error) =>{
+                    Debug.LogError(_error.errorMessage.ToString());
+                });
+            }
+            else
+            {
+                GameSparksManager.Instance().GetPurchasableItems(new string[]{ get_purchasable_tag.text }, int.Parse(get_purchasable_offset.text), int.Parse(get_purchasable_limit.text),  (_items)=>{
+                    for(int i = 0; i < _items.Length; i++)
+                    {
+                        _items[i].Print();
+                    }
+                }, (_error) =>{
+                    Debug.LogError(_error.errorMessage.ToString());
+                });
+            }
+
+
+        });
 
         #endregion
-
 
         #region Daily Spin
 
@@ -990,6 +1029,19 @@ public class UIManager : MonoBehaviour {
 
 
         #endregion 
+
+        #region Achievement
+
+        award_ach_bttn.onClick.AddListener(() => {
+            Debug.Log("Clicked Award Achievement Button...");
+            GameSparksManager.Instance().AwardAchievement(award_ach_name.text, (_currency) =>{
+                _currency.Print();
+            }, (_error) =>{
+                Debug.LogError(_error.errorMessage.ToString());
+            });
+        });
+
+        #endregion
 	}
 
 
@@ -1049,6 +1101,7 @@ public class UIManager : MonoBehaviour {
         asset_bundle.SetActive(false);
         currency.SetActive(false);
         daily_spin.SetActive(false);
+        achievements.SetActive(false);
 		_panel.SetActive (true);
          
 
