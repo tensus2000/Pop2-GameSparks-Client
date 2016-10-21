@@ -170,7 +170,7 @@
         </member>
         <member name="M:GameSparks.RT.IRTSessionListener.OnPacket(GameSparks.RT.RTPacket)">
             <summary>
-            Executed when the SDK GameSparksErrorMessage a message from another player via SendPacket
+            Executed when the SDK recieves a message from another player via SendPacket
             </summary>
             <param name="opCode">The opCode sent by the other player</param>
             <param name="sender">The peerId of the other player</param>
@@ -277,7 +277,7 @@
             Get a session instance
             </summary>
             <returns>The session.</returns>
-            <param name="connectToken">A Connect token as GameSparksErrorMessage from the GameSparks SDK</param>
+            <param name="connectToken">A Connect token as recieved from the GameSparks SDK</param>
             <param name="hostName">Host name.</param>
             <param name="tcpPort">TCP port.</param>
             <param name="udpPort">UDP port.</param>
@@ -348,7 +348,7 @@
         </member>
         <member name="F:GameSparks.RT.GameSparksRT.ConnectState.ReliableAndFastSend">
             <summary>
-            We've successfully send some UDP and the server has GameSparksErrorMessage it, but have not GameSparksErrorMessage any
+            We've successfully send some UDP and the server has recieved it, but have not recieved any
             </summary>
         </member>
         <member name="F:GameSparks.RT.GameSparksRT.ConnectState.ReliableAndFast">

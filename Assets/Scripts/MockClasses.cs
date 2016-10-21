@@ -208,16 +208,35 @@ public class OutfitPrototype
 
 public class AdornmentPrototype
 {
-    public string type, name, url;
+    public string type, name, url, gender, adornment_id;
+    public int size;
+    public DateTime last_modified;
 
-    public AdornmentPrototype(string type, string url)
+    public AdornmentPrototype(GSData gsData)
     {
-        this.url = url;
-        this.type = type;
+        this.name = gsData.GetString("name");
+        this.adornment_id = gsData.GetString("adornment_id");
+        this.gender = gsData.GetString("gender");
+        this.type = gsData.GetString("type");
+        this.url = gsData.GetString("url");
+        if(gsData.GetNumber("size").HasValue)
+        {
+            this.size = (int)gsData.GetNumber("size").Value;
+        }
+        if(gsData.GetDate("last_modified").HasValue)
+        {
+            this.last_modified = gsData.GetDate("last_modified").Value;
+        }
     }
 
     public AdornmentPrototype()
     {
+    }
+
+    public void Print(){
+        Debug.Log("Name:"+name+", Adornment ID:"+adornment_id+", Gender:"+gender+", Type:"+type);
+        Debug.Log("URL:"+url+"\nSize:"+size+", Last Modified:"+last_modified);
+
     }
 }
 
@@ -282,7 +301,7 @@ public class Adornment
 
 public class Item
 {
-    int item_id;
+    string item_id;
     string name, icon, representation, isSpecial, equipped;
 
 
@@ -291,7 +310,7 @@ public class Item
 
     }
 
-    public Item(int item_id, string name, string icon, string equipped, string isSpecial, string representation)
+    public Item(string item_id, string name, string icon, string equipped, string isSpecial, string representation)
     {
         this.item_id = item_id;
         this.name = name;
@@ -462,6 +481,15 @@ public class Character
 {
     int level, experience;
     string character_id, name, gender;
+
+    public Character(GSData gsData)
+    {
+        this.character_id = gsData.GetGSData("_id").GetString("$oid");
+        this.level = gsData.GetInt("level").Value;
+        this.experience = gsData.GetInt("experience").Value;
+        this.name = gsData.GetString("name");
+        this.gender = gsData.GetString("gender");
+    }
 
     public Character(string character_id, int level, int experience, string name, string gender)
     {

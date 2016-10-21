@@ -42,8 +42,6 @@ public class UIManager : MonoBehaviour {
 	public Button parent_email_bttn, get_parent_emai_bttn, delete_parent_email_bttn, change_password_bttn, check_username_bttn;
 	public InputField parent_email_input, old_password, new_password, check_username, check_username_suggestions;
 
-
-
 	public Button send_private_message_bttn;
 	public InputField message_header, message_body, message_recipient;
 
@@ -56,8 +54,9 @@ public class UIManager : MonoBehaviour {
 	public Button getIslands_bttn, visit_island_bttn, leave_island_bttn, complete_island_bttn;
 	public InputField player_island_id;
 
-	public Button get_char_bttn;
+	public Button get_char_bttn, get_chars_bttn;
 	public InputField get_char_input;
+    public InputField[] get_chars_list;
 
 	public Button create_char_bttn;
 	public InputField char_name_input, char_gender_input;
@@ -73,7 +72,8 @@ public class UIManager : MonoBehaviour {
     public InputField marks, makeup, hair, facial, shirt, helmet, pants, bangs, shoes, overshirt, wristfont, overpants, backhand, hat, pack, adornment_id;
     public Text outfit_title;
 
-    public Button outfit_back_bttn, set_outfit_bttn, create_outfit_bttn, get_outfit_bttn;
+    public Button outfit_back_bttn, set_outfit_bttn, create_outfit_bttn, get_outfit_bttn, get_adornments_bttn;
+    public InputField[] get_adornment_ids;
     public GameObject set_outfit_panel;
 
 	public Button reset_email_bttn;
@@ -91,12 +91,11 @@ public class UIManager : MonoBehaviour {
     public Button test_user_bttn;
     public InputField  test_username, test_displayName, test_age, test_gender, test_password;
 
-    public Button submit_asset_bundle_bttn, get_asset_bundle_bttn;
-    public InputField asset_bundle_id, created_by, admin_username, admin_password, file_path_1, get_asset_bundle_id;
-    public GameObject uploadingPanel;
+    public Button get_asset_bundle_bttn, get_asset_bundle_from_scene_bttn, get_scene_name_bttn;
+    public InputField asset_bundle_id, get_asset_bundle_id, asset_bundle_scene_name, asset_id_for_scene_names;
 
-    public InputField currency_character_id, no_moonstones_convert_field, currency_event_name_field, purchase_item_id, get_purchasable_limit, get_purchasable_offset, get_purchasable_tag;
-    public Button convert_to_coins_bttn, add_currency_event_complete_bttn, purchase_item_bttn, get_balance_bttn, get_purchasable_items_bttn;
+    public InputField currency_character_id, no_moonstones_convert_field, currency_event_name_field, purchase_item_id, get_purchasable_limit, get_purchasable_offset, get_purchasable_tag, grant_moonstones_amount;
+    public Button convert_to_coins_bttn, add_currency_event_complete_bttn, purchase_item_bttn, get_balance_bttn, get_purchasable_items_bttn, grant_moonstones_bttn;
     public Text to_coins;
 
     public Button get_daily_spin_bttn, choose_daily_bonus_bttn;
@@ -520,9 +519,9 @@ public class UIManager : MonoBehaviour {
 			// below is an example of how to send private messages with payload data //
 			// the payload data can be anything the client wants to interperate as an action or trigger (or anything really) //
 			// for example if we want a quest to start for the recipient when they recieve the data... //
-			// we are going to send the JSON { "quest-trigger" : "message-GameSparksErrorMessage" }
+			// we are going to send the JSON { "quest-trigger" : "message-receives" }
 			GSRequestData payloadData = new GSRequestData ();
-			payloadData.AddString ("quest-trigger", "message-GameSparksErrorMessage");
+			payloadData.AddString ("quest-trigger", "message-receives");
 			// we can then send it with the overloaded method.... //
 			GameSparksManager.Instance ().SendPrivateMessage (message_header.text, message_body.text, payloadData, message_recipient.text, character_id, null, null);
 
@@ -648,32 +647,10 @@ public class UIManager : MonoBehaviour {
 		#endregion 
 
 		#region CHARACTER OUTFIT EXAMPLES
+
+ 
 		set_outfit_bttn.onClick.AddListener (() => {
 			Debug.Log ("UIM| Clicked On Set Outfit Button...");
-
-            // THE FOLLOWING IS AN EXAMPLE OF AN OUTFIT USED FOR TESTING //
-//            Outfit outfit = new Outfit();
-//            outfit.isPlayerOutfit = true;
-//            outfit.skinColor = Color.gray;
-//            outfit.hairColor = Color.blue;
-//            outfit.reactiveEyelids = true;
-//            outfit.eyes = new Adornment(){ name = "eyes"};
-//            outfit.mouth = new Adornment(){ name = "mouth"};
-//            outfit.hair = new Adornment(){ name = "hair"};
-//            outfit.shirt = new Adornment(){ name = "shirt"};
-//            outfit.pants = new Adornment(){ name = "pants"};
-//            outfit.shoes = new Adornment(){ name = "shoes"};
-//            outfit.wristFront = new Adornment(){ name = "wrist"};
-//            outfit.bangs = new Adornment(){ name = "bangs"};
-//            outfit.helmet = new Adornment(){ name = "helmet"};
-//            outfit.facial = new Adornment(){ name = "facial"};
-//            outfit.makeup = new Adornment(){ name = "makeup"};
-//            outfit.marks = new Adornment(){ name = "marks"};
-//            outfit.overshirt = new Adornment(){ name = "overshirt"};
-//            outfit.overpants = new Adornment(){ name = "overpants"};
-//            outfit.backhandItem = new Adornment(){ name = "backhandItem"};
-//            outfit.hat = new Adornment(){ name = "hat"};
-//            outfit.pack = new Adornment(){ name = "pack"};
 
             Outfit outfit = new Outfit();
             outfit.isPlayerOutfit = true;
@@ -696,10 +673,11 @@ public class UIManager : MonoBehaviour {
             outfit.hat = new Hat(){ name = hat.text };
             outfit.pack = new Pack(){ name = pack.text };
 
+            Debug.LogWarning(pants.text);
 
-			GameSparksManager.Instance ().SetOutfit (character_id, outfit, () => {
+            GameSparksManager.Instance ().SetOutfit (character_id, outfit, () => {
 			}, (_error) => {
-                Debug.LogError("UIM| "+_error.errorMessage.ToString());
+                Debug.LogError(_error.errorMessage.ToString());
 			});
 		});
 
@@ -727,10 +705,12 @@ public class UIManager : MonoBehaviour {
             set_outfit_bttn.gameObject.SetActive(true);
             set_outfit_panel.SetActive(true);
         });
+
         outfit_back_bttn.onClick.AddListener (() => {
             Debug.Log("UIM| Clicked On Outfit Back Bttn");
             set_outfit_panel.SetActive(false);
         });
+
         get_outfit_bttn.onClick.AddListener (() => {
             Debug.Log("UIM| Clicked On Get Outfit Bttn");
 
@@ -758,49 +738,7 @@ public class UIManager : MonoBehaviour {
 
                 foreach(AdornmentPrototype ad  in _outfitPrototype.adornmentList)
                 {
-                    Debug.Log(ad.type+":"+ad.name+"\n url:"+ad.url);
-                    switch(ad.type){
-                        case "hair":
-                            hair.text = ad.url;
-                            break;
-                        case "shirt":
-                            shirt.text = ad.url;
-                            break;
-                        case "pants":
-                            pants.text = ad.url;
-                            break;
-                        case "shoes": 
-                            shoes.text = ad.url;
-                            break;
-                        case "bangs":
-                            bangs.text = ad.url;
-                            break;
-                        case "helmet":
-                            helmet.text = ad.url;
-                            break;
-                        case "facial":
-                            facial.text = ad.url;
-                            break;
-                        case "makeup":
-                            makeup.text = ad.url;
-                            break;
-                        case "marks":
-                            marks.text = ad.url;
-                            break;
-                        case "overshirt":
-                            overshirt.text = ad.url;
-                            break;
-                        case "overpants":
-                            overpants.text = ad.url;
-                            break;
-                        case "hat":
-                            hat.text = ad.url;
-                            break;
-                        case "pack":
-                            pack.text = ad.url;
-                            break;
-
-                    }
+                    ad.Print();
                 }
                 Debug.Log("Hair color: " + _outfitPrototype.hairColor.ToString());
                 Debug.Log("Skin color: " + _outfitPrototype.skinColor.ToString());
@@ -827,22 +765,48 @@ public class UIManager : MonoBehaviour {
         get_adornment_bttn.onClick.AddListener (() => {
             Debug.Log("UIM| Clicked Get Adornment Button...");
             GameSparksManager.Instance().GetAdornment(adornment_id.text, (_adornment)=>{
-                Debug.Log("UIM| URL:"+_adornment.url);
+                _adornment.Print();
             }, (_error)=>{
-                Debug.LogError("UIM| "+_error.errorMessage.ToString());
+                Debug.LogError(_error.errorMessage.ToString());
             });
-
-//            GameSparksManager.Instance().GetAdornments(new List<string>(){ "makeup", "shoes", "shirt"}, (_adornments)=>{
-//                foreach(AdornmentPrototype ad in _adornments)
-//                {
-//                    Debug.Log(ad.url);
-//                }
-//            }, (_error) =>{
-//                Debug.Log("UIM| "+_error.errorMessage.ToString());
-//            });
         });
 
+        get_adornments_bttn.onClick.AddListener (() => {
+            Debug.Log("UIM| Clicked Get Adornments Button...");
+            // convert the inputfield[] to string string list
+            List<string> adornment_id_list = new List<string>();
+            for(int i = 0; i < get_adornment_ids.Length; i++)
+            {
+                adornment_id_list.Add(get_adornment_ids[i].text);
+            }
 
+            GameSparksManager.Instance().GetAdornments(adornment_id_list, (_adornments)=>{
+                for(int i = 0; i < _adornments.Length; i++)
+                {
+                    _adornments[i].Print();
+                }
+            }, (_error)=>{
+                Debug.LogError(_error.errorMessage.ToString());
+            });
+        });
+
+        get_chars_bttn.onClick.AddListener(() =>{
+            Debug.Log("Clicked On Get Character Bttn...");
+            List<string> char_names_list = new List<string>();
+            for(int i = 0; i < get_chars_list.Length; i++)
+            {
+                char_names_list.Add(get_chars_list[i].text);
+            }
+
+            GameSparksManager.Instance().GetCharacters(char_names_list, (_characters)=>{
+                foreach(Character c  in _characters)
+                {
+                    c.Print();
+                }
+            }, (_error)=>{
+                Debug.LogError(_error.errorMessage.ToString());
+            });
+        });
 
 
 		#endregion
@@ -903,20 +867,33 @@ public class UIManager : MonoBehaviour {
 
         #region Asset Bundle
 
-        submit_asset_bundle_bttn.onClick.AddListener (() => {
-            Debug.Log("Clicked On Sumitt Asset Bundle Button...");
+        get_scene_name_bttn.onClick.AddListener (() => {
+            Debug.Log("Clicked On Get Scenes From Asset Bundle Button...");
+            GameSparksManager.Instance().GetSceneByAssetBundleID(asset_bundle_scene_name.text, (scene_names)=>{
 
-            List<string> filePaths = new List<string>();
-            filePaths.Add(file_path_1.text);
-            uploadingPanel.SetActive(true);
-            GameSparksDownloadablesManager.SubmitAssetBundle(asset_bundle_id.text, created_by.text, admin_username.text, admin_password.text, file_path_1.text, 
-                (_assetBundle)=>{
-                _assetBundle.Print();
-                uploadingPanel.SetActive(false);
+                for(int i = 0; i < scene_names.Length; i++){
+                    Debug.Log("Scene Name:"+scene_names[i]);
+                }
+
             }, (_error)=>{
-                uploadingPanel.SetActive(false);
                 Debug.LogError(_error.errorMessage.ToString());
             });
+
+        });
+
+
+        get_asset_bundle_from_scene_bttn.onClick.AddListener (() => {
+            Debug.Log("Clicked On Get Asset Bundle From Scene Button...");
+            GameSparksManager.Instance().GetAssetBundleByScene(asset_bundle_scene_name.text, (asset_bundle_ids)=>{
+
+                for(int i = 0; i < asset_bundle_ids.Length; i++){
+                    Debug.Log("Bundle ID:"+asset_bundle_ids[i]);
+                }
+                
+            }, (_error)=>{
+                Debug.LogError(_error.errorMessage.ToString());
+            });
+
         });
 
         get_asset_bundle_bttn.onClick.AddListener (() => {
@@ -928,23 +905,20 @@ public class UIManager : MonoBehaviour {
                 Debug.LogError(_error.errorMessage.ToString());
             });
 
-//            List<string> assetBundleList = new List<string>();
-//            assetBundleList.Add("test_a");
-//            GameSparksManager.Instance().GetAssetBundles(assetBundleList, (_assetbundles) =>{
-//                for(int i = 0; i < _assetbundles.Length; i++)
-//                {
-//                    _assetbundles[i].Print();
-//                }
-//
-//            }, (_error)=>{
-//                Debug.LogError(_error.errorMessage.ToString());
-//            });
-
         });
 
         #endregion 
 
         #region Currency
+
+        grant_moonstones_bttn.onClick.AddListener(() => {
+            Debug.Log("Clicked On Convert To Coins Button...");
+            GameSparksManager.Instance().GrantMoonStones(int.Parse(grant_moonstones_amount.text), (_balance)=>{
+                _balance.Print();
+            }, (_error) =>{
+                Debug.LogError(_error.errorMessage.ToString());
+            });
+        });
 
         convert_to_coins_bttn.onClick.AddListener(() => {
             Debug.Log("Clicked On Convert To Coins Button...");

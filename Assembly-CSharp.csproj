@@ -63,6 +63,7 @@
      <Compile Include="Assets\GameSparks\Platforms\WebGL\WebGLWebSocket.cs" />
      <Compile Include="Assets\GameSparks\Platforms\WebSocketController.cs" />
      <Compile Include="Assets\GameSparks\TestUI\GameSparksTestUI.cs" />
+     <Compile Include="Assets\GameSparks\TestUserAutoAuthenticate.cs" />
      <Compile Include="Assets\Scripts\GameSparksManager.cs" />
      <Compile Include="Assets\Scripts\GameSparksRest\GameSparksFormUpload.cs" />
      <Compile Include="Assets\Scripts\GameSparksRest\GameSparksRestApi.cs" />
